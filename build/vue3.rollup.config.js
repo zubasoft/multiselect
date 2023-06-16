@@ -33,7 +33,8 @@ export default [
       name: 'VueformMultiselect',
       globals: {
         'vue': 'Vue',
-      }
+      },
+	  sourcemap: true
     },
     plugins: [
       vue(),

@@ -150,15 +150,15 @@
       <!-- Clear -->
       <slot v-if="hasSelected && !disabled && canClear && !busy" name="clear" :clear="clear">
         <span
-          aria-hidden="true"
           tabindex="0"
           role="button"
           data-clear
           aria-roledescription="❎"
+          :aria-label="localize(clearText)"
           :class="classList.clear"
           @click="clear"
           @keyup.enter="clear"
-        ><span :class="classList.clearIcon"></span></span>
+        ><span :class="classList.clearIcon" aria-hidden="true"></span></span>
       </slot>
 
       <!-- Caret -->
@@ -247,12 +247,12 @@
         </template>
       </ul>
 
-      <slot v-if="noOptions" name="nooptions">
-        <div :class="classList.noOptions" v-html="localize(noOptionsText)"></div>
+      <slot name="nooptions">
+        <div :class="classList.noOptions" v-html="noOptions ? localize(noOptionsText) : ''" aria-live="polite" role="status" aria-atomic="true"></div>
       </slot>
 
-      <slot v-if="noResults" name="noresults">
-        <div :class="classList.noResults" v-html="localize(noResultsText)"></div>
+      <slot name="noresults">
+        <div :class="classList.noResults" v-html="noResults ? localize(noResultsText) : ''" aria-live="polite" role="status" aria-atomic="true"></div>
       </slot>
 
       <div v-if="infinite && hasMore" :class="classList.inifinite" ref="infiniteLoader">
@@ -268,10 +268,17 @@
     <input v-if="required" :class="classList.fakeInput" tabindex="-1" :value="textValue" required/>
     
     <!-- Native input support -->
-    <template v-if="nativeSupport">
+    <template v-if="nativeSupport && wcagSupport === false">
       <input v-if="mode == 'single'" type="hidden" :name="name" :value="plainValue !== undefined ? plainValue : ''" />
       <template v-else>
         <input v-for="(v, i) in plainValue" type="hidden" :name="`${name}[]`" :value="v" :key="i" />
+      </template>
+    </template>
+
+    <template v-if="wcagSupport && nativeSupport === false">
+      <input v-if="mode == 'single'" type="hidden" :name="name" :value="localize(iv[label]) !== undefined ? localize(iv[label]) : ''" />
+      <template v-else>
+        <input type="hidden" :name="`${name}[]`" :value="multipleLabelText" />
       </template>
     </template>
 
@@ -428,6 +435,11 @@
         required: false,
         default: 'No results found',
       },
+      clearText: {
+        type: [String, Object],
+        required: false,
+        default: 'Clear',
+      },
       multipleLabel: {
         type: Function,
         required: false,
@@ -500,6 +512,11 @@
       nativeSupport: {
         type: Boolean,
         required: false,
+        default: false,
+      },
+      wcagSupport: {
+        type: Boolean,
+        required: true,
         default: false,
       },
       classes: {
