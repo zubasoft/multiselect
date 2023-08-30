@@ -542,6 +542,10 @@ export default function useOptions (props, context, dep)
   }
 
   const getOption = (val) => {
+    if(typeof val === 'object') {
+      return undefined;
+    }
+
     return eo.value[eo.value.map(o => String(o[valueProp.value])).indexOf(String(val))]
   }
 
@@ -707,15 +711,29 @@ export default function useOptions (props, context, dep)
     }
 
     // If external should be plain transform value object to plain values
-    return mode.value === 'single' ? getOption(val) || (allowAbsent.value ? {
-      [label.value]: val,
-      [valueProp.value]: val,
-      [trackBy.value]: val,
-    } : {}) : val.filter(v => !!getOption(v) || allowAbsent.value).map(v => getOption(v) || {
-      [label.value]: v,
-      [valueProp.value]: v,
-      [trackBy.value]: v,
-    })
+    let u_return = {};
+    if(mode.value === 'single') {
+      u_return = getOption(val);
+      if(!u_return) {
+        if(allowAbsent.value && typeof val !== 'object') { // sometime val is an event object - do not allow this value
+          u_return = {
+            [label.value]: val,
+            [valueProp.value]: val,
+            [trackBy.value]: val,
+          }
+        } else {
+          u_return = {};
+        }
+      }
+    } else {
+      u_return = val.filter(v => !!getOption(v) || allowAbsent.value).map(v => getOption(v) || {
+        [label.value]: v,
+        [valueProp.value]: v,
+        [trackBy.value]: v,
+      })
+    }
+
+    return u_return
   }
 
   // no export
