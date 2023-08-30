@@ -115,6 +115,7 @@ export default function useKeyboard (props, context, dep)
         }
 
         if (activeIndex !== -1 && activeIndex !== undefined) {
+          // Used only for tags
           update([...iv.value].filter((v, k) => k !== activeIndex))
 
           if (activeIndex === tagList.length - 1) {
@@ -126,13 +127,14 @@ export default function useKeyboard (props, context, dep)
               wrapper.value.focus()
             }
           }
+
           return
         }
 
         if (addOptionOn.value.indexOf('enter') === -1 && createOption.value) {
           return
         }
-        
+
         preparePointer()
         selectPointer()
         break
@@ -161,6 +163,7 @@ export default function useKeyboard (props, context, dep)
         break
       
       case 'Tab':
+        break;
       case ';':
       case ',':
         if (addOptionOn.value.indexOf(e.key.toLowerCase()) === -1 || !createOption.value) {

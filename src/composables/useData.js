@@ -10,6 +10,7 @@ export default function useData (props, context, dep)
   // ============ DEPENDENCIES ============
 
   const iv = dep.iv
+  const updateSearchAtSelection = dep.updateSearchAtSelection
 
   // =============== METHODS ==============
 
@@ -20,6 +21,8 @@ export default function useData (props, context, dep)
     // Setting object(s) or plain value as external 
     // value based on `option` setting
     const externalVal = makeExternal(val)
+
+    updateSearchAtSelection(val);
 
     context.emit('change', externalVal, $this)
 

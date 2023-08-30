@@ -29,6 +29,8 @@ export default function useOptions (props, context, dep)
   const deactivate = dep.deactivate
   const close = dep.close
   const localize = dep.localize
+  const wrapper = dep.wrapper
+  const keyboardFocusHelper = dep.keyboardFocusHelper;
 
   // ================ DATA ================
 
@@ -395,6 +397,9 @@ export default function useOptions (props, context, dep)
         if (closeOnSelect.value) {
           clearPointer()
           close()
+
+          //wrapper.value.focus();
+          keyboardFocusHelper.value.focus();
         }
 
         if (option) {

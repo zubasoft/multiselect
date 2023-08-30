@@ -28,7 +28,7 @@ export default [
   {
     input: 'src/Multiselect.vue',
     output: {
-      file: 'dist/multiselect.global.js',
+      file: '../ds/public/vue/public/js/libs/03multiselect.global.js',
       format: 'iife',
       name: 'VueformMultiselect',
       globals: {

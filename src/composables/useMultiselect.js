@@ -10,6 +10,7 @@ export default function useMultiselect (props, context, dep)
   const open = dep.open
   const close = dep.close
   const clearSearch = dep.clearSearch
+  const initSearch = dep.initSearch
   const isOpen = dep.isOpen
 
   // ================ DATA ================
@@ -17,6 +18,8 @@ export default function useMultiselect (props, context, dep)
   const multiselect = ref(null)
   
   const wrapper = ref(null)
+
+  const keyboardFocusHelper = ref(null)
 
   const tags = ref(null)
 
@@ -77,7 +80,21 @@ export default function useMultiselect (props, context, dep)
       return
     }
 
-    activate(mouseClicked.value)
+    /* Commented out because always opening is not accessible:
+       https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/
+       Just leaved it there in case we want it again somewhere
+
+    if(mouseClicked.value === false && searchable.value && !e.target?.classList.contains('multiselect-keyboard-focus-helper')) {
+      // Always open the multiselect when searchable (act like an autocomplete)
+      activate(true)
+    } else {*/
+      activate(mouseClicked.value)
+    //}
+
+    if(searchable.value && e.target.nodeName === 'INPUT') {
+      // Set search value to the actual selected value
+      initSearch(e)
+    }
   }
 
   const handleFocusOut = () => {
@@ -109,6 +126,7 @@ export default function useMultiselect (props, context, dep)
   return {
     multiselect,
     wrapper,
+    keyboardFocusHelper,
     tags,
     tabindex,
     isActive,

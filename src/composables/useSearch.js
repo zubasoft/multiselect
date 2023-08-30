@@ -10,6 +10,8 @@ export default function useSearch (props, context, dep)
 
   const isOpen = dep.isOpen
   const open = dep.open
+  const iv = dep.iv
+  const isActive = dep.isActive
 
   // ================ DATA ================
 
@@ -17,10 +19,31 @@ export default function useSearch (props, context, dep)
 
   const input = ref(null)
 
+  const fromInit = ref(null)
+
+
   // =============== METHODS ==============
 
   const clearSearch = () => {
     search.value = ''
+  }
+
+  const updateSearchAtSelection = (value) => {
+    if(isActive?.value) {
+      search.value = value.label || '';
+    }
+  }
+
+  const initSearch = (e) => {
+    if(isOpen.value /*|| !isActive?.value*/) {
+      return;
+    }
+
+    fromInit.value = true;
+    search.value = iv.value.label || '';
+    setTimeout(() => {
+      fromInit.value = false;
+    }, 0);
   }
 
   const handleSearchInput = (e) => {
@@ -63,7 +86,7 @@ export default function useSearch (props, context, dep)
   // ============== WATCHERS ==============
 
   watch(search, (val) => {
-    if (!isOpen.value && val) {
+    if (!isOpen.value && val && !fromInit.value) {
       open()
     }
 
@@ -74,6 +97,8 @@ export default function useSearch (props, context, dep)
     search,
     input,
     clearSearch,
+    initSearch,
+    updateSearchAtSelection,
     handleSearchInput,
     handleKeypress,
     handlePaste,

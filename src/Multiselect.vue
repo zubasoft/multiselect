@@ -32,6 +32,7 @@
           :class="classList.search"
           :autocomplete="autocomplete"
           :id="searchable ? id : undefined"
+          :placeholder="localize(searchPlaceholderText)"
           @input="handleSearchInput"
           @keypress="handleKeypress"
           @paste.stop="handlePaste"
@@ -41,7 +42,6 @@
           :aria-placeholder="ariaPlaceholder"
           :aria-expanded="isOpen"
           :aria-activedescendant="ariaActiveDescendant"
-          :aria-multiselectable="ariaMultiselectable"
           role="combobox"
 
           v-bind="{
@@ -167,6 +167,9 @@
       </slot>
     </div>
 
+    <!-- Keyboard helper for accessibility (e.g. when you click on an option and tab after with the keyboard)  -->
+    <div class="multiselect-keyboard-focus-helper" ref="keyboardFocusHelper" tabindex="-1"></div>
+
     <!-- Options -->
     <div
       :class="classList.dropdown"
@@ -248,11 +251,11 @@
       </ul>
 
       <slot name="nooptions">
-        <div :class="classList.noOptions" v-html="noOptions ? localize(noOptionsText) : ''" aria-live="polite" role="status" aria-atomic="true"></div>
+        <div :class="noOptions ? classList.noOptions : [classList.noOptions, 'empty'].join(' ')" v-html="noOptions ? localize(noOptionsText) : ''" aria-live="polite" role="status" aria-atomic="true"></div>
       </slot>
 
       <slot name="noresults">
-        <div :class="classList.noResults" v-html="noResults ? localize(noResultsText) : ''" aria-live="polite" role="status" aria-atomic="true"></div>
+        <div :class="noResults ? classList.noResults : [classList.noResults, 'empty'].join(' ')" v-html="noResults ? localize(noResultsText) : ''" aria-live="polite" role="status" aria-atomic="true"></div>
       </slot>
 
       <div v-if="infinite && hasMore" :class="classList.inifinite" ref="infiniteLoader">
@@ -265,17 +268,17 @@
     </div>
 
     <!-- Hacky input element to show HTML5 required warning -->
-    <input v-if="required" :class="classList.fakeInput" tabindex="-1" :value="textValue" required/>
-    
+    <input v-if="required" :class="classList.fakeInput" tabindex="-1" :value="textValue" required :aria-label="fakeInputHelpText"/>
+
     <!-- Native input support -->
-    <template v-if="nativeSupport && wcagSupport === false">
-      <input v-if="mode == 'single'" type="hidden" :name="name" :value="plainValue !== undefined ? plainValue : ''" />
+    <template v-if="nativeSupport && (wcagSupport === false || searchable === true)">
+      <input v-if="mode == 'single'" type="hidden" :name="name" :value="textValue !== undefined ? textValue : ''" />
       <template v-else>
         <input v-for="(v, i) in plainValue" type="hidden" :name="`${name}[]`" :value="v" :key="i" />
       </template>
     </template>
 
-    <template v-if="wcagSupport && nativeSupport === false">
+    <template v-if="wcagSupport && nativeSupport === false && searchable === false">
       <input v-if="mode == 'single'" type="hidden" :name="name" :value="localize(iv[label]) !== undefined ? localize(iv[label]) : ''" />
       <template v-else>
         <input type="hidden" :name="`${name}[]`" :value="multipleLabelText" />
@@ -439,6 +442,16 @@
         type: [String, Object],
         required: false,
         default: 'Clear',
+      },
+      searchPlaceholderText: {
+        type: [String, Object],
+        required: false,
+        default: 'Search Keyword',
+      },
+      fakeInputHelpText: {
+        type: [String, Object],
+        required: false,
+        default: 'In case you were able to focus this field with your screen reader you can ignore it. It\'s only here for form validation (technical reason).',
       },
       multipleLabel: {
         type: Function,
@@ -643,6 +656,7 @@
         default: false,
       },
     },
+
     setup(props, context)
     { 
       return resolveDeps(props, context, [
