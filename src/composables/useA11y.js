@@ -93,9 +93,13 @@ export default function useA11y (props, context, dep)
     // Need to add manually because focusing
     // the input won't read the selected value
     if (searchable.value) {
-      arias['aria-labelledby'] = arias['aria-labelledby']
-        ? `${ariaAssist.value} ${arias['aria-labelledby']}`
-        : ariaAssist.value
+      // We can skip this after we have changes the search input to keep the selected value (so the screen reader reads now the selected value) - this also causes that the <label> tag is not read
+      if(mode.value !== 'single') {
+        arias['aria-labelledby'] = arias['aria-labelledby']
+            ? `${ariaAssist.value} ${arias['aria-labelledby']}`
+            : ariaAssist.value
+      }
+
       
       if (ariaLabel.value && arias['aria-label']) {
         arias['aria-label'] = `${ariaLabel.value}, ${arias['aria-label']}`

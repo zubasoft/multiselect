@@ -6,7 +6,7 @@ function isNullish (val) {
 
 function useData (props, context, dep)
 {
-  const { object, valueProp, mode } = toRefs(props);
+  const { object, valueProp, mode, options} = toRefs(props);
 
   const $this = getCurrentInstance().proxy;
 
@@ -18,14 +18,26 @@ function useData (props, context, dep)
   // =============== METHODS ==============
 
   const update = (val, triggerInput = true) => {
+    if(mode.value === 'single') {
+      updateSearchAtSelection(val);
+    } else {
+      if(Array.isArray(val)) {
+        val = val.map((v) => {
+          if(typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+            return options._object.options.filter((o) => { return o[valueProp.value].toString() === v.toString() })[0];
+          }
+
+          return v;
+        });
+      }
+    }
+
     // Setting object(s) as internal value
     iv.value = makeInternal(val);
 
     // Setting object(s) or plain value as external 
     // value based on `option` setting
     const externalVal = makeExternal(val);
-
-    updateSearchAtSelection(val);
 
     context.emit('change', externalVal, $this);
 
@@ -2196,9 +2208,13 @@ function useA11y (props, context, dep)
     // Need to add manually because focusing
     // the input won't read the selected value
     if (searchable.value) {
-      arias['aria-labelledby'] = arias['aria-labelledby']
-        ? `${ariaAssist.value} ${arias['aria-labelledby']}`
-        : ariaAssist.value;
+      // We can skip this after we have changes the search input to keep the selected value (so the screen reader reads now the selected value) - this also causes that the <label> tag is not read
+      if(mode.value !== 'single') {
+        arias['aria-labelledby'] = arias['aria-labelledby']
+            ? `${ariaAssist.value} ${arias['aria-labelledby']}`
+            : ariaAssist.value;
+      }
+
       
       if (ariaLabel.value && arias['aria-label']) {
         arias['aria-label'] = `${ariaLabel.value}, ${arias['aria-label']}`;
@@ -2699,7 +2715,7 @@ const _hoisted_2 = ["tabindex", "aria-controls", "aria-placeholder", "aria-expan
 const _hoisted_3 = ["type", "modelValue", "value", "autocomplete", "id", "placeholder", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant"];
 const _hoisted_4 = ["onKeyup", "aria-label"];
 const _hoisted_5 = ["onClick"];
-const _hoisted_6 = ["type", "modelValue", "value", "id", "autocomplete", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant", "aria-multiselectable"];
+const _hoisted_6 = ["type", "modelValue", "value", "id", "autocomplete", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant", "aria-multiselectable", "role"];
 const _hoisted_7 = ["innerHTML"];
 const _hoisted_8 = ["aria-label"];
 const _hoisted_9 = {
@@ -2716,7 +2732,7 @@ const _hoisted_15 = ["data-pointed", "data-selected", "onMouseenter", "onClick",
 const _hoisted_16 = ["data-pointed", "data-selected", "onMouseenter", "onClick", "id", "aria-selected", "aria-label"];
 const _hoisted_17 = ["innerHTML"];
 const _hoisted_18 = ["innerHTML"];
-const _hoisted_19 = ["value", "aria-label"];
+const _hoisted_19 = ["id", "value", "required", "disabled", "aria-label"];
 const _hoisted_20 = ["name", "value"];
 const _hoisted_21 = ["name", "value"];
 const _hoisted_22 = ["name", "value"];
@@ -2836,7 +2852,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                     "aria-expanded": _ctx.isOpen,
                     "aria-activedescendant": _ctx.ariaActiveDescendant,
                     "aria-multiselectable": _ctx.ariaMultiselectable,
-                    role: "combobox"
+                    role: $props.mode === 'single' ? 'combobox' : 'listbox'
                   }, {
                 ...$props.attrs,
                 ..._ctx.arias,
@@ -3054,14 +3070,16 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
         : createCommentVNode("v-if", true),
       renderSlot(_ctx.$slots, "afterlist", { options: _ctx.fo })
     ], 2 /* CLASS */),
-    createCommentVNode(" Hacky input element to show HTML5 required warning "),
-    ($props.required)
+    createCommentVNode(" Hacky input element to show HTML5 required warning - and also for accessibility that the label references to an input "),
+    ($props.required || $props.disabled)
       ? (openBlock(), createElementBlock("input", {
           key: 0,
+          id: $props.disabled ? $props.id : undefined,
           class: normalizeClass(_ctx.classList.fakeInput),
           tabindex: "-1",
           value: _ctx.textValue,
-          required: "",
+          required: $props.required,
+          disabled: $props.disabled,
           "aria-label": $props.fakeInputHelpText
         }, null, 10 /* CLASS, PROPS */, _hoisted_19))
       : createCommentVNode("v-if", true),

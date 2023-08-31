@@ -106,7 +106,7 @@
               :aria-expanded="isOpen"
               :aria-activedescendant="ariaActiveDescendant"
               :aria-multiselectable="ariaMultiselectable"
-              role="combobox"
+              :role="mode === 'single' ? 'combobox' : 'listbox'"
 
               v-bind="{
                 ...attrs,
@@ -267,8 +267,8 @@
       <slot name="afterlist" :options="fo"></slot>
     </div>
 
-    <!-- Hacky input element to show HTML5 required warning -->
-    <input v-if="required" :class="classList.fakeInput" tabindex="-1" :value="textValue" required :aria-label="fakeInputHelpText"/>
+    <!-- Hacky input element to show HTML5 required warning - and also for accessibility that the label references to an input -->
+    <input v-if="required || disabled" :id="disabled ? id : undefined" :class="classList.fakeInput" tabindex="-1" :value="textValue" :required="required" :disabled="disabled" :aria-label="fakeInputHelpText"/>
 
     <!-- Native input support -->
     <template v-if="nativeSupport && (wcagSupport === false || searchable === true)">
