@@ -454,8 +454,7 @@ function useOptions (props, context, dep)
   const hasSelected = computed(() => {
     switch (mode.value) {
       case 'single':
-        return !isNullish(iv.value[valueProp.value])
-
+        return !isNullish(iv.value[valueProp.value]) && (iv.value[label.value] !== '') // iv.value[valueProp.value] !== '' &&
       case 'multiple':
       case 'tags':
         return !isNullish(iv.value) && iv.value.length > 0
