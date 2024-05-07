@@ -213,7 +213,7 @@ describe('useOptions', () => {
       expect(select.vm.fo[0].name).toBe('Válué1')
     })
 
-    it('should contain only options with normalized trackBys that match normalized search start, strict=false, searchStart=trze', () => {
+    it('should contain only options with normalized trackBys that match normalized search start, strict=false, searchStart=true', () => {
       const select = createSelect({
         options: [
           { value: 0, name: 'aVálué0', },
@@ -231,6 +231,34 @@ describe('useOptions', () => {
       expect(select.vm.fo.length).toBe(2)
       expect(select.vm.fo[0].name).toBe('aVálué0')
       expect(select.vm.fo[1].name).toBe('aaVálué2')
+    })
+
+    it('should contain only options with multiple trackBys', () => {
+      const select = createSelect({
+        options: [
+          { value: 0, firstname: 'John', lastname: 'Doe' },
+          { value: 1, firstname: 'Doe', lastname: 'Jane' },
+          { value: 2, firstname: 'Lily', lastname: 'Alan' },
+        ],
+        trackBy: ['firstname', 'lastname'],
+        label: 'firstname',
+      })
+
+      select.vm.search = 'doe'
+
+      expect(select.vm.fo.length).toBe(2)
+      expect(select.vm.fo[0].firstname).toBe('John')
+      expect(select.vm.fo[1].firstname).toBe('Doe')
+
+      select.vm.search = 'lily'
+
+      expect(select.vm.fo.length).toBe(1)
+      expect(select.vm.fo[0].firstname).toBe('Lily')
+
+      select.vm.search = 'jane'
+
+      expect(select.vm.fo.length).toBe(1)
+      expect(select.vm.fo[0].firstname).toBe('Doe')
     })
 
     it('should hide selected tags when hideSelected is true', async () => {
@@ -2960,19 +2988,19 @@ describe('useOptions', () => {
     it('should use searchFilter for search when defined', () => {
       let select = createSelect({
         value: null,
-        options: [1,2,3],
+        options: ['abc','bca','cab'],
         searchable: true,
-        searchFilter(option) {
-          return option.value == 2
+        searchFilter(option, query) {
+          return option.value.endsWith(query)
         }
       })
 
-      select.vm.search = 'aaa'
+      select.vm.search = 'a'
 
       expect(select.vm.fo).toStrictEqual([
         {
-          label: 2,
-          value: 2,
+          label: 'bca',
+          value: 'bca',
         }
       ])
     })
@@ -4000,6 +4028,39 @@ describe('useOptions', () => {
       await nextTick()
 
       expect(getValue(select)).toStrictEqual([1,2])
+    })
+
+    it('should update offset when limit changes', async () => {
+      let select = createSelect({
+        mode: 'single',
+        options: [1,2,3,4,5],
+        limit: 2
+      })
+
+      expect(select.vm.fo.length).toStrictEqual(2)
+
+      select.vm.$parent.props.limit = 3
+
+      await nextTick()
+
+      expect(select.vm.fo.length).toStrictEqual(3)
+    })
+
+    it('should update offset to 10 when limit changes to -1 and has infinite', async () => {
+      let select = createSelect({
+        mode: 'single',
+        options: [1,2,3,4,5,6,7,8,9,10,11,12],
+        limit: 2,
+        infinite: true,
+      })
+
+      expect(select.vm.fo.length).toStrictEqual(2)
+
+      select.vm.$parent.props.limit = -1
+
+      await nextTick()
+
+      expect(select.vm.fo.length).toStrictEqual(10)
     })
   })
 })

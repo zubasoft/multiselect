@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://www.npmjs.com/package/@vueform/multiselect" target="_blank">
-    <img alt="npm" src="https://img.shields.io/npm/dm/@vueform/multiselect?color=%2353ca2f">
+    <img alt="npm" src="https://img.shields.io/npm/dy/@vueform/multiselect?color=%2353ca2f">
   </a>
 
   <img alt="CircleCI" src="https://img.shields.io/circleci/build/github/vueform/multiselect">
@@ -23,7 +23,7 @@
 
   <h1>Vue 3 Multiselect</h1>
   
-  <a href="https://vueform.com?ref=github" target="_blank">
+  <a href="https://vueform.com?cid=multiselect" target="_blank">
     <br>
     <img align="center" src="https://github.com/vueform/multiselect/raw/main/assets/logo.svg" width="110">
     <br>
@@ -42,29 +42,41 @@
 ## Sponsors
 
 <div align="center"><br>
-  <a href="https://vueform.com?ref=github"><img src="https://github.com/vueform/multiselect/raw/main/assets/logo-horizontal.svg" width="200"></a>
+  <a href="https://vueform.com?cid=multiselect"><img src="https://github.com/vueform/multiselect/raw/main/assets/logo-horizontal.svg" width="200"></a>
 </div>
 
 <br>
 
-<a href="https://vueform.com?ref=ghb">
+<a href="https://vueform.com?cid=multiselect">
   <img align="center" src="https://github.com/vueform/multiselect/raw/main/assets/vueform-banner.png" alt="Vueform" title="Vueform">
 </a>
 
 <br>
 <br>
 
-Vueform is a comprehensive form builder for Vue.js that makes form development a breeze. It standardizes and handles the entire form building process, including:
-- a complete theming and templating system with **Tailwind support** (similar to @vueform libraries)
+Vueform is comprehensive **form development framework** for Vue.js. It supercharges and standardizes the entire form building process and takes care of everything from rendering to validation and processing. With our latest tool, the **Drag and Drop Form Builder**, you can allow your developers & non-tech workforce to build the most complex forms without coding.
+
+Feature highlights:
+- integrate Vueform **Drag and Drop Form Builder** into **any application**
+- save forms in **database** as a JSON
+- use your **own form elements** with **custom configuration** options
+- a complete theming and templating system with **Tailwind support**
 - 25+ form elements with **multi-file uploads**, date pickers and rich text editor
 - element **nesting** and **repeating**
 - **50+ validators** with async, dependent and custom rules
 - **conditional logic** on element & form level
 - breaking forms into **steps** with **form wizard**
-- **dynamic** form rendering with **JSON** support
 - **translating** form content and global i18n support.
 
-Learn more: [https://vueform.com](https://vueform.com)
+<a href="https://builder.vueform.com/demo?cid=multiselect">
+  <img align="center" src="https://github.com/vueform/multiselect/raw/main/assets/builder-banner.png" alt="Vueform Builder" title="Vueform Builder">
+</a>
+<br>
+<br>
+
+**Learn more:**
+- Builder: [https://builder.vueform.com](https://builder.vueform.com?cid=multiselect)
+- Framework: [https://vueform.com](https://vueform.com?cid=multiselect)
 
 **Other Vueform libraries:**
 
@@ -89,6 +101,7 @@ Learn more: [https://vueform.com](https://vueform.com)
 | New option when not using tags | ✓ | - | ✓ |
 | New option validation | ✓ | ~ | - |
 | Infinite scroll | ✓ | ~ | ~ |
+| Append to body | ✓ | ~ | ✓ |
 | Object value support | ✓ | ✓ | - |
 | Accents/diacritics sensitivity | ✓ | ~ | ~ |
 | Search regex | ✓ | - | ~ |
@@ -130,10 +143,14 @@ Learn more: [https://vueform.com](https://vueform.com)
 
 ## Docs
 
+- [Sponsors](#sponsors)
+- [Comparison with other libraries](#comparison-with-other-libraries)
+- [Docs](#docs)
 - [Demo](#demo)
 - [Installation](#installation)
 - [Using with Vue 3](#using-with-vue-3)
 - [Using with Vue 2](#using-with-vue-2)
+    - [Using with \< Vue 2.7](#using-with--vue-27)
 - [Support](#support)
 - [Configuration](#configuration)
   - [Basic props](#basic-props)
@@ -157,8 +174,8 @@ Learn more: [https://vueform.com](https://vueform.com)
   - [Multiselect with custom label slot](#multiselect-with-custom-label-slot)
   - [Tags with custom tags slot](#tags-with-custom-tags-slot)
   - [Async options with default values](#async-options-with-default-values)
-  - [Default values that are not among the options using object: true](#default-values-that-are-not-among-the-options-using-object-true)
-  - [Default values that are not among the options using allowAbsent: true](#default-values-that-are-not-among-the-options-using-allowabsent-true)
+  - [Default values that are not among the options using `object: true`](#default-values-that-are-not-among-the-options-using-object-true)
+  - [Default values that are not among the options using `allowAbsent: true`](#default-values-that-are-not-among-the-options-using-allowabsent-true)
   - [Manage created tag asynchronously](#manage-created-tag-asynchronously)
   - [Load async options from API on open with infinite scroll](#load-async-options-from-api-on-open-with-infinite-scroll)
   - [Multiselect with localized texts](#multiselect-with-localized-texts)
@@ -267,9 +284,12 @@ Join our [Discord channel](https://discord.gg/WhX2nG6GTQ) or [open an issue](htt
 | **groupHideEmpty** | `{boolean} false` | Whether groups that have no `options` by default should be hidden. |
 | **required** | `{boolean} false` | Whether the HTML5 required attribute should be used for multiselect (using an invisible fake input). |
 | **infinite** | `{boolean} false` | Whether the actual option nodes should only be loaded on scroll. The `limit` option defines how many options are loaded initially and in each new batch. |
+| **appendToBody** | `{boolean} false` | **[Vue 3 only]** *(experimental)* Whether the dropdown list should be appended to `<body>` and positioned absolutely. |
+| **appendTo** | `{string} undefined` | **[Vue 3 only]** *(experimental)* Can be used instead of `appendToBody` to teleport the dropdown to a specific DOM. The value should be a query selector. |
+| **closeOnScroll** | `{boolean} false` | Closes the dropdown list on scrolling parent DOM / window when using `appendToBody: true`. |
 | **searchable** | `{boolean} false` | Whether the options should be searchable. |
 | **valueProp** | `{string} 'value'` | If you provide an array of objects as `options` this property should be used as the value of the option. |
-| **trackBy** | `{string} undefined` | The name of the property that should be searched when `searchable` is `true` and an array of objects are provided as `options`. If left `undefined` the `label` prop will be used instead. |
+| **trackBy** | `{string\|array} undefined` | The name(s) of the properties that should be searched when `searchable` is `true` and an array of objects are provided as `options`. If left `undefined` the `label` prop will be used instead. |
 | **label** | `{string} 'label'` | If you provide an array of objects as `options` the value of this property will be displayed as selected option. |
 | **disabledProp** | `{string} 'disabled'` | If you provide an array of objects as `options` this property should be used to determine whether the option is disabled. |
 | **placeholder** | `{string} null` | The text that should be displayed before any option is selected. |
@@ -285,18 +305,18 @@ Join our [Discord channel](https://discord.gg/WhX2nG6GTQ) or [open an issue](htt
 | **caret** | `{boolean} true` | Whether should display the caret symbol on the right. |
 | **locale** | `{string} null` | The locale of the multiselect. If a locale is set labels might have an `object` value with different keys for different locales. |
 | **locale** | `{string} 'en'` | The fallback locale. |
-| **noOptionsText** | `{string|object} 'The list is empty'` | The text that should be displayed when options list is empty. It can be an object with different keys for different locales. |
-| **noResultsText** | `{string|object} 'No results found'` | The text that should be displayed when there are no search results. It can be an object with different keys for different locales. |
+| **noOptionsText** | `{string\|object} 'The list is empty'` | The text that should be displayed when options list is empty. It can be an object with different keys for different locales. |
+| **noResultsText** | `{string\|object} 'No results found'` | The text that should be displayed when there are no search results. It can be an object with different keys for different locales. |
 | **openDirection** | `{string} 'bottom'` | Whether the option list should be displayed above or below the multiselect. Possible values: `top\|bottom` |
 | **reverse** | `{boolean} false` | Whether the option list should be reversed. Only works with `groups: false`. |
 | **regex** | `{regex\|string} undefined` | The regex that search input should be tested against when `searchable: true`. |
 | **strict** | `{boolean} true` | Whether should regard accents/diacritics in search. |
 | **searchStart** | `{boolean} false` | Whether the search should match the start of the options' `trackBy`s. |
-| **searchFilter** | `function(option, select$) null` | A custom search function that overrides the default search algorithm. |
+| **searchFilter** | `function(option, query, select$) null` | A custom search function that overrides the default search algorithm. |
 | **aria** | `object` | An object containing aria attributes to be added for the multiselect. |
-| **classes** | `object` | An object of class names that gets merged with the default values. Default: `{`<br>&nbsp;&nbsp;`container: 'multiselect',`<br>&nbsp;&nbsp;`containerDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`containerOpen: 'is-open',`<br>&nbsp;&nbsp;`containerOpenTop: 'is-open-top',`<br>&nbsp;&nbsp;`containerActive: 'is-active',`<br>&nbsp;&nbsp;`wrapper: 'multiselect-wrapper',`<br>&nbsp;&nbsp;`singleLabel: 'multiselect-single-label',`<br>&nbsp;&nbsp;`singleLabelText: 'multiselect-single-label-text',`<br>&nbsp;&nbsp;`multipleLabel: 'multiselect-multiple-label',`<br>&nbsp;&nbsp;`search: 'multiselect-search',`<br>&nbsp;&nbsp;`tags: 'multiselect-tags',`<br>&nbsp;&nbsp;`tag: 'multiselect-tag',`<br>&nbsp;&nbsp;`tagDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`tagRemove: 'multiselect-tag-remove',`<br>&nbsp;&nbsp;`tagRemoveIcon: 'multiselect-tag-remove-icon',`<br>&nbsp;&nbsp;`tagsSearchWrapper: 'multiselect-tags-search-wrapper',`<br>&nbsp;&nbsp;`tagsSearch: 'multiselect-tags-search',`<br>&nbsp;&nbsp;`tagsSearchCopy: 'multiselect-tags-search-copy',`<br>&nbsp;&nbsp;`placeholder: 'multiselect-placeholder',`<br>&nbsp;&nbsp;`caret: 'multiselect-caret',`<br>&nbsp;&nbsp;`caretOpen: 'is-open',`<br>&nbsp;&nbsp;`clear: 'multiselect-clear',`<br>&nbsp;&nbsp;`clearIcon: 'multiselect-clear-icon',`<br>&nbsp;&nbsp;`spinner: 'multiselect-spinner',`<br>&nbsp;&nbsp;`dropdown: 'multiselect-dropdown',`<br>&nbsp;&nbsp;`dropdownTop: 'is-top',`<br>&nbsp;&nbsp;`dropdownHidden: 'is-hidden',`<br>&nbsp;&nbsp;`options: 'multiselect-options',`<br>&nbsp;&nbsp;`optionsTop: 'is-top',`<br>&nbsp;&nbsp;`group: 'multiselect-group',`<br>&nbsp;&nbsp;`groupLabel: 'multiselect-group-label',`<br>&nbsp;&nbsp;`groupLabelPointable: 'is-pointable',`<br>&nbsp;&nbsp;`groupLabelPointed: 'is-pointed',`<br>&nbsp;&nbsp;`groupLabelSelected: 'is-selected',`<br>&nbsp;&nbsp;`groupLabelDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`groupLabelSelectedPointed: 'is-selected is-pointed',`<br>&nbsp;&nbsp;`groupLabelSelectedDisabled: 'is-selected is-disabled',`<br>&nbsp;&nbsp;`groupOptions: 'multiselect-group-options',`<br>&nbsp;&nbsp;`option: 'multiselect-option',`<br>&nbsp;&nbsp;`optionPointed: 'is-pointed',`<br>&nbsp;&nbsp;`optionSelected: 'is-selected',`<br>&nbsp;&nbsp;`optionDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`optionSelectedPointed: 'is-selected is-pointed',`<br>&nbsp;&nbsp;`optionSelectedDisabled: 'is-selected is-disabled',`<br>&nbsp;&nbsp;`noOptions: 'multiselect-no-options',`<br>&nbsp;&nbsp;`noResults: 'multiselect-no-results',`<br>&nbsp;&nbsp;`fakeInput: 'multiselect-fake-input',`<br>&nbsp;&nbsp;`assist: 'multiselect-assistive-text'`<br>&nbsp;&nbsp;`spacer: 'multiselect-spacer'`<br>`}` |
+| **classes** | `object` | An object of class names that gets merged with the default values. Default: `{`<br>&nbsp;&nbsp;`container: 'multiselect',`<br>&nbsp;&nbsp;`containerDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`containerOpen: 'is-open',`<br>&nbsp;&nbsp;`containerOpenTop: 'is-open-top',`<br>&nbsp;&nbsp;`containerActive: 'is-active',`<br>&nbsp;&nbsp;`wrapper: 'multiselect-wrapper',`<br>&nbsp;&nbsp;`singleLabel: 'multiselect-single-label',`<br>&nbsp;&nbsp;`singleLabelText: 'multiselect-single-label-text',`<br>&nbsp;&nbsp;`multipleLabel: 'multiselect-multiple-label',`<br>&nbsp;&nbsp;`search: 'multiselect-search',`<br>&nbsp;&nbsp;`tags: 'multiselect-tags',`<br>&nbsp;&nbsp;`tag: 'multiselect-tag',`<br>&nbsp;&nbsp;`tagDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`tagWrapper: 'multiselect-tag-wrapper',`<br>&nbsp;&nbsp;`tagWrapperBreak: 'multiselect-tag-wrapper-break',`<br>&nbsp;&nbsp;`tagRemove: 'multiselect-tag-remove',`<br>&nbsp;&nbsp;`tagRemoveIcon: 'multiselect-tag-remove-icon',`<br>&nbsp;&nbsp;`tagsSearchWrapper: 'multiselect-tags-search-wrapper',`<br>&nbsp;&nbsp;`tagsSearch: 'multiselect-tags-search',`<br>&nbsp;&nbsp;`tagsSearchCopy: 'multiselect-tags-search-copy',`<br>&nbsp;&nbsp;`placeholder: 'multiselect-placeholder',`<br>&nbsp;&nbsp;`caret: 'multiselect-caret',`<br>&nbsp;&nbsp;`caretOpen: 'is-open',`<br>&nbsp;&nbsp;`clear: 'multiselect-clear',`<br>&nbsp;&nbsp;`clearIcon: 'multiselect-clear-icon',`<br>&nbsp;&nbsp;`spinner: 'multiselect-spinner',`<br>&nbsp;&nbsp;`infinite: 'multiselect-infinite',`<br>&nbsp;&nbsp;`infiniteSpinner: 'multiselect-infinite-spinner',`<br>&nbsp;&nbsp;`dropdown: 'multiselect-dropdown',`<br>&nbsp;&nbsp;`dropdownTop: 'is-top',`<br>&nbsp;&nbsp;`dropdownHidden: 'is-hidden',`<br>&nbsp;&nbsp;`options: 'multiselect-options',`<br>&nbsp;&nbsp;`optionsTop: 'is-top',`<br>&nbsp;&nbsp;`group: 'multiselect-group',`<br>&nbsp;&nbsp;`groupLabel: 'multiselect-group-label',`<br>&nbsp;&nbsp;`groupLabelPointable: 'is-pointable',`<br>&nbsp;&nbsp;`groupLabelPointed: 'is-pointed',`<br>&nbsp;&nbsp;`groupLabelSelected: 'is-selected',`<br>&nbsp;&nbsp;`groupLabelDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`groupLabelSelectedPointed: 'is-selected is-pointed',`<br>&nbsp;&nbsp;`groupLabelSelectedDisabled: 'is-selected is-disabled',`<br>&nbsp;&nbsp;`groupOptions: 'multiselect-group-options',`<br>&nbsp;&nbsp;`option: 'multiselect-option',`<br>&nbsp;&nbsp;`optionPointed: 'is-pointed',`<br>&nbsp;&nbsp;`optionSelected: 'is-selected',`<br>&nbsp;&nbsp;`optionDisabled: 'is-disabled',`<br>&nbsp;&nbsp;`optionSelectedPointed: 'is-selected is-pointed',`<br>&nbsp;&nbsp;`optionSelectedDisabled: 'is-selected is-disabled',`<br>&nbsp;&nbsp;`noOptions: 'multiselect-no-options',`<br>&nbsp;&nbsp;`noResults: 'multiselect-no-results',`<br>&nbsp;&nbsp;`fakeInput: 'multiselect-fake-input',`<br>&nbsp;&nbsp;`assist: 'multiselect-assistive-text'`<br>&nbsp;&nbsp;`spacer: 'multiselect-spacer'`<br>`}` |
 
-<a href="https://vueform.com?ref=ghb">
+<a href="https://vueform.com?cid=multiselect">
   <img align="center" src="https://github.com/vueform/multiselect/raw/main/assets/vueform-banner.png" alt="Vueform" title="Vueform">
 </a>
 
@@ -316,6 +336,7 @@ Join our [Discord channel](https://discord.gg/WhX2nG6GTQ) or [open an issue](htt
 | **filterResults** | `{boolean} true` | Whether option list should be filtered by search query. This may be set to `false` if you are handling filtering manually when returning async options. |
 | **minChars** | `{number} 0` | The minimum number of characters that should be typed to refresh async option list. If `0` it will refresh even when the search field becomes empty. |
 | **resolveOnLoad** | `{boolean} true` | Whether async options should be loaded initially (with an empty query). This should be `true` if you are planning to load non-object value(s) initially while using async options (to fetch matching objects for values). |
+| **breakTags** | `{boolean} false` | Whether long tags should be broken into multiple lines (otherwise truncated at max width). |
 | **appendNewTag** | `{boolean} true` | **Deprecated 2.3.0: use `appendNewOption` instead.**<br>Whether it should append new tag automatically to option list when using `tags` mode with `createTag`. If set to `false` you need to take care of appending a new tag to the provided `:options` list upon `@tag` event. |
 | **createTag** | `{boolean} false` | **Deprecated 2.3.0: use `createOption` instead.**<br>Whether it should allow creating new tags based on search query when using `tags` mode. |
 | **addTagOn** | `{array} ['enter']` | **Deprecated 2.3.0: use `addOptionOn` instead.**<br>The list of keys that creates a new tag while typing in the search field when having `createTag` enabled. Possible values: `'enter'\|'space'\|'tab'\|';'\|','`. |
@@ -375,11 +396,11 @@ mounted() {
 | Event | Attributes | Description |
 | --- | --- | --- |
 | **@change** | `value, select$` | Emitted after the value is changed. |
-| **@close** | `select$` | Emitted after closing the option list. |
-| **@deselect** | `option, select$` | Emitted after an option is deselected or a tag is removed. |
+| **@select** | `value, option, select$` | Emitted after an option or tag is selected. |
+| **@deselect** | `value, option, select$` | Emitted after an option is deselected or a tag is removed. |
 | **@open** | `select$` | Emitted after opening the option list. |
+| **@close** | `select$` | Emitted after closing the option list. |
 | **@search-change** | `query, select$` | Emitted after a character is typed. |
-| **@select** | `option, select$` | Emitted after an option or tag is selected. |
 | **@tag** | `query, select$` | **Deprecated 2.3.0: use `@create` instead**. Emitted after enter is hit when a new tag is being created. |
 | **@option** | `query, select$` | **Deprecated 2.6.0: use `@create` instead**. Emitted after enter is hit when a new option is being created. |
 | **@create** | `query, select$` | Emitted after enter is hit when a new option is being created. |
@@ -405,7 +426,7 @@ The `select$` param in each event is the Multiselect component's instance.
 | **option** | `option, isPointed, isSelected, search` | Renders an option in options list. The `isPointed` and `isSelected` props are function that used be used like `isPointed(option)` to determine the state. |
 | **singlelabel** | `value` | Rendered when using `single` mode and an option is selected. By default it renders the `:label` if the selected option. |
 | **tag** | `option, handleTagRemove, disabled` | Renders a tag when using `tags` mode. When `disabled` the remove icon should not be displayed. The `handleTagRemove` prop should be used to trigger the removal of the tag. |
-| **caret** | | Renders a small triangle on the right side of the multiselect. |
+| **caret** | `handleCaretClick, isOpen` | Renders a small triangle on the right side of the multiselect. The content of the slot should have `pointer-events: false` when `isOpen: false` to replicate the original behaviour. |
 | **clear** | `clear` | Renders a remove icon if the multiselect has any value. The `clear` method should be used on `mousedown` event. |
 | **spinner** | | Renders a loader icon when async options are being fetched. |
 | **infinite** | | Renders a loader icon when infinite scroll is in progress. |
@@ -539,7 +560,7 @@ Or on an instance level:
 
 ### Styling with Tailwind CSS
 
-To use `Multiselect` with Tailwind CSS first you need install `npm i -D mini-svg-data-url` and add background images to `tailwind.config.js`:
+To use `Multiselect` with Tailwind CSS first you need install `npm i -D mini-svg-data-uri` and add background images to `tailwind.config.js`:
 
 ``` js
 // tailwind.config.js
@@ -596,13 +617,16 @@ Alternatively you can define class names directly by passing them to the `Multis
   containerOpen: 'rounded-b-none',
   containerOpenTop: 'rounded-t-none',
   containerActive: 'ring ring-green-500 ring-opacity-30',
+  wrapper: 'relative mx-auto w-full flex items-center justify-end box-border cursor-pointer outline-none',
   singleLabel: 'flex items-center h-full max-w-full absolute left-0 top-0 pointer-events-none bg-transparent leading-snug pl-3.5 pr-16 box-border rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3.5',
   singleLabelText: 'overflow-ellipsis overflow-hidden block whitespace-nowrap max-w-full',
   multipleLabel: 'flex items-center h-full absolute left-0 top-0 pointer-events-none bg-transparent leading-snug pl-3.5 rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3.5',
   search: 'w-full absolute inset-0 outline-none focus:ring-0 appearance-none box-border border-0 text-base font-sans bg-white rounded pl-3.5 rtl:pl-0 rtl:pr-3.5',
-  tags: 'flex-grow flex-shrink flex flex-wrap items-center mt-1 pl-2 rtl:pl-0 rtl:pr-2',
-  tag: 'bg-green-500 text-white text-sm font-semibold py-0.5 pl-2 rounded mr-1 mb-1 flex items-center whitespace-nowrap rtl:pl-0 rtl:pr-2 rtl:mr-0 rtl:ml-1',
+  tags: 'flex-grow flex-shrink flex flex-wrap items-center mt-1 pl-2 min-w-0 rtl:pl-0 rtl:pr-2',
+  tag: 'bg-green-500 text-white text-sm font-semibold py-0.5 pl-2 rounded mr-1 mb-1 flex items-center whitespace-nowrap min-w-0 rtl:pl-0 rtl:pr-2 rtl:mr-0 rtl:ml-1',
   tagDisabled: 'pr-2 opacity-50 rtl:pl-2',
+  tagWrapper: 'whitespace-nowrap overflow-hidden overflow-ellipsis',
+  tagWrapperBreak: 'whitespace-normal break-all',
   tagRemove: 'flex items-center justify-center p-1 mx-0.5 rounded-sm hover:bg-black hover:bg-opacity-10 group',
   tagRemoveIcon: 'bg-multiselect-remove bg-center bg-no-repeat opacity-30 inline-block w-3 h-3 group-hover:opacity-60',
   tagsSearchWrapper: 'inline-block relative mx-1 mb-1 flex-grow flex-shrink h-full',
@@ -614,8 +638,8 @@ Alternatively you can define class names directly by passing them to the `Multis
   clear: 'pr-3.5 relative z-10 opacity-40 transition duration-300 flex-shrink-0 flex-grow-0 flex hover:opacity-80 rtl:pr-0 rtl:pl-3.5',
   clearIcon: 'bg-multiselect-remove bg-center bg-no-repeat w-2.5 h-4 py-px box-content inline-block',
   spinner: 'bg-multiselect-spinner bg-center bg-no-repeat w-4 h-4 z-10 mr-3.5 animate-spin flex-shrink-0 flex-grow-0 rtl:mr-0 rtl:ml-3.5',
-  inifite: 'flex items-center justify-center w-full',
-  inifiteSpinner: 'bg-multiselect-spinner bg-center bg-no-repeat w-4 h-4 z-10 animate-spin flex-shrink-0 flex-grow-0 m-3.5',
+  infinite: 'flex items-center justify-center w-full',
+  infiniteSpinner: 'bg-multiselect-spinner bg-center bg-no-repeat w-4 h-4 z-10 animate-spin flex-shrink-0 flex-grow-0 m-3.5',
   dropdown: 'max-h-60 absolute -left-px -right-px bottom-0 transform translate-y-full border border-gray-300 -mt-px overflow-y-scroll z-50 bg-white flex flex-col rounded-b',
   dropdownTop: '-translate-y-full top-px bottom-auto rounded-b-none rounded-t',
   dropdownHidden: 'hidden',
@@ -636,10 +660,11 @@ Alternatively you can define class names directly by passing them to the `Multis
   optionDisabled: 'text-gray-300 cursor-not-allowed',
   optionSelectedPointed: 'text-white bg-green-500 opacity-90',
   optionSelectedDisabled: 'text-green-100 bg-green-500 bg-opacity-50 cursor-not-allowed',
-  noOptions: 'py-2 px-3 text-gray-600 bg-white text-left',
-  noResults: 'py-2 px-3 text-gray-600 bg-white text-left',
+  noOptions: 'py-2 px-3 text-gray-600 bg-white text-left rtl:text-right',
+  noResults: 'py-2 px-3 text-gray-600 bg-white text-left rtl:text-right',
   fakeInput: 'bg-transparent absolute left-0 right-0 -bottom-px w-full h-px border-0 p-0 appearance-none outline-none text-transparent',
-  spacer: 'h-9 py-px box-content',
+  assist: 'absolute -m-px w-px h-px overflow-hidden',
+  spacer: 'h-9 py-px box-content'
 }" />
 ```
 

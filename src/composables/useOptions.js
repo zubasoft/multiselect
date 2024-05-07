@@ -24,6 +24,7 @@ export default function useOptions (props, context, dep)
   const clearSearch = dep.clearSearch
   const update = dep.update
   const pointer = dep.pointer
+  const setPointer = dep.setPointer
   const clearPointer = dep.clearPointer
   const focus = dep.focus
   const deactivate = dep.deactivate
@@ -218,14 +219,14 @@ export default function useOptions (props, context, dep)
 
     return [{
       [valueProp.value]: search.value,
-      [trackBy.value]: search.value,
+      [trackBy.value[0]]: search.value,
       [label.value]: search.value,
       __CREATE__: true,
     }]
   })
 
   const trackBy = computed(() => {
-    return trackBy_.value || label.value
+    return trackBy_.value ? (Array.isArray(trackBy_.value) ? trackBy_.value : [trackBy_.value]) : [label.value]
   })
 
   // no export
@@ -313,8 +314,8 @@ export default function useOptions (props, context, dep)
   }
 
   const clear = () => {
-    context.emit('clear', $this)
     update(nullValue.value)
+    context.emit('clear', $this)
   }
 
   const isSelected = (option) => {
@@ -505,6 +506,11 @@ export default function useOptions (props, context, dep)
             .filter((o, k) => iv.value.length + 1 + k <= max.value || max.value === -1)
           )
         }
+
+        if (hideSelected.value && pointer.value) {
+          // Refresh pointer because pointer.__VISIBLE__ are not reactive #354
+          setPointer(fg.value.filter(g => !g[disabledProp.value])[pointer.value.index])
+        }
         break
     }
 
@@ -554,10 +560,12 @@ export default function useOptions (props, context, dep)
   }
 
   // no export
-  const getOptionByTrackBy = (val, norm = true) => {
-    return eo.value.map(o => parseInt(o[trackBy.value]) == o[trackBy.value] ? parseInt(o[trackBy.value]) : o[trackBy.value]).indexOf(
-      parseInt(val) == val ? parseInt(val) : val
-    )
+  const getOptionByTrackBy = (val) => {
+    return eo.value.findIndex((o) => {
+      return trackBy.value.some((track) => {
+        return (parseInt(o[track]) == o[track] ? parseInt(o[track]) : o[track]) === (parseInt(val) == val ? parseInt(val) : val)
+      })
+    })
   }
 
   // no export
@@ -592,16 +600,20 @@ export default function useOptions (props, context, dep)
       let filter = searchFilter.value
 
       if (!filter) {
-        filter = (option, $this) => {
-          let target = normalize(localize(option[trackBy.value]), strict.value)
+        filter = (option, query, $this) => {
+          return trackBy.value.some(track => {
+            let target = normalize(localize(option[track]), strict.value);
 
-          return searchStart.value
-            ? target.startsWith(normalize(search.value, strict.value))
-            : target.indexOf(normalize(search.value, strict.value)) !== -1
+            return searchStart.value
+                ? target.startsWith(normalize(query, strict.value))
+                : target.indexOf(normalize(query, strict.value)) !== -1;
+          })
         }
       }
 
-      fo = fo.filter(filter)
+      fo = fo.filter((o) => {
+        return filter(o, search.value, $this)
+      })
     }
 
     if (hideSelected.value && excludeHideSelected) {
@@ -620,13 +632,13 @@ export default function useOptions (props, context, dep)
       uo = Object.keys(uo).map((key) => {
         let val = uo[key]
 
-        return { [valueProp.value]: key, [trackBy.value]: val, [label.value]: val}
+        return { [valueProp.value]: key, [trackBy.value[0]]: val, [label.value]: val}
       })
     }
 
     // Transforming an plain arrays to an array of objects
     uo = uo.map((val) => {
-      return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value]: val, [label.value]: val}
+      return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value[0]]: val, [label.value]: val}
     })
 
     return uo
@@ -723,7 +735,7 @@ export default function useOptions (props, context, dep)
           u_return = {
             [label.value]: val,
             [valueProp.value]: val,
-            [trackBy.value]: val,
+            [trackBy.value[0]]: val,
           }
         } else {
           u_return = {};
@@ -733,7 +745,7 @@ export default function useOptions (props, context, dep)
       u_return = val.filter(v => !!getOption(v) || allowAbsent.value).map(v => getOption(v) || {
         [label.value]: v,
         [valueProp.value]: v,
-        [trackBy.value]: v,
+        [trackBy.value[0]]: v,
       })
     }
 
@@ -846,6 +858,10 @@ export default function useOptions (props, context, dep)
   })
 
   watch(label, refreshLabels)
+
+  watch(limit, (n,o) => {
+    offset.value = infinite.value && n === -1 ? 10 : n
+  })
 
   return {
     pfo,

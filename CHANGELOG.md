@@ -1,3 +1,59 @@
+## v2.6.7
+
+> `2024-03-20`
+
+### 🐞 Bug Fixes
+  - Clicking on scroll bar closes the dropdown fix #383
+  - Types for scoped slots #391
+  - Missing method types and typo fixes #376 #392
+  - Don't show dropdown id when id is not defined
+  - Avoid error when multiselect does not exist #394
+
+## v2.6.6
+
+> `2023-10-18`
+
+### 🎉 Feature
+  - Added `appendTo` option.
+  - Added `${id}-dropdown` to dropdown DOM.
+
+### 🐞 Bug Fixes
+  - Included `@popperjs/core` for `appendToBody` / `appendTo` position fixes.
+
+## v2.6.5
+
+> `2023-10-16`
+
+### 🐞 Bug Fixes
+  - Type fixes.
+
+## v2.6.4
+
+> `2023-10-14`
+
+### 🐞 Bug Fixes
+  - Type fixes.
+
+## v2.6.3
+
+> `2023-10-07`
+
+### 🎉 Feature
+  - Added `appendToBody` **experimental** feature for **Vue.js 3 only**. #133 #341
+  - `trackBy` can now accept array. #314
+  - Auto truncate long tags. Added `breakTags` prop. #346
+  - Added `handleCaretClick` and `isOpen` to `caret` slot. #320
+  - The externalValue (from `v-model`) is now reactive. #356
+
+### 🐞 Bug Fixes
+  - `limit` prop was not reactive. #342
+  - Trigger `deselect` on tags backspace. #335
+  - Keyboard nav on group select fix. #354
+  - TypeScript fixes. Thanks @antpngl92 @Adeiko @mathildaax 🙏 #287 #282 #260 #230
+  - `searchFilter` did not receive proper args. #338 #337
+  - Open dropdown when it has search, it's focued and dropdown is closed. #333
+  - Options are cleared before `clear` event is emitted. #332
+
 ## v2.6.2
 
 > `2023-04-17`
