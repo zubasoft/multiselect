@@ -561,7 +561,12 @@ function useOptions (props, context, dep)
 
   // no export
   const finalValue = (option) => {
-    return object.value ? option : option[valueProp.value]
+    try {
+      return object.value ? option : option[valueProp.value];
+    } catch(e) {
+      console.error(e);
+      return undefined;
+    }
   };
 
   const remove = (option) => {
