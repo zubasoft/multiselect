@@ -58,7 +58,6 @@
             v-for="(option, i, key) in iv"
             name="tag"
             :option="option"
-            :key="key"
             :handleTagRemove="handleTagRemove"
             :disabled="disabled"
           >
