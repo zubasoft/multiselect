@@ -3,6 +3,7 @@ import normalize from './../utils/normalize'
 import isObject from './../utils/isObject'
 import isNullish from './../utils/isNullish'
 import arraysEqual from './../utils/arraysEqual'
+import objectsEqual from './../utils/objectsEqual'
 import toRef from './../utils/toRef'
 
 export default function useOptions (props, context, dep)
@@ -325,7 +326,10 @@ export default function useOptions (props, context, dep)
 
     switch (mode.value) {
       case 'single':
-        return !isNullish(iv.value) && iv.value[valueProp.value] == option[valueProp.value]
+        return !isNullish(iv.value) && (
+          iv.value[valueProp.value] == option[valueProp.value] ||
+          (typeof iv.value[valueProp.value] === 'object' && typeof option[valueProp.value] === 'object' && objectsEqual(iv.value[valueProp.value], option[valueProp.value]))
+        )
 
       case 'tags':
       case 'multiple':
