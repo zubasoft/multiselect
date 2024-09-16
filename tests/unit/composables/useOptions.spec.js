@@ -1666,6 +1666,22 @@ describe('useOptions', () => {
       expect(select.vm.isSelected({ v: 2, label: 2 })).toBe(true)
       expect(select.vm.isSelected({ v: 3, label: 3 })).toBe(false)
     })
+
+    it('should be true if the valueProp\'s value is an object', () => {
+      let select = createSelect({
+        mode: 'single',
+        options: [
+          { v: { a: 1, b: 1 }, label: 1 },
+          { v: { a: 2, b: 2 }, label: 2 },
+        ],
+        value: { v: { a: 2, b: 2 }, label: 2 },
+        object: true,
+        valueProp: 'v',
+      })
+
+      expect(select.vm.isSelected({ v: { a: 2, b: 2 }, label: 2 })).toBe(true)
+      expect(select.vm.isSelected({ v: { a: 1, b: 1 }, label: 1 })).toBe(false)
+    })
   })
 
   describe('isDisabled', () => {

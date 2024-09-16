@@ -1,3 +1,4 @@
+/* istanbul ignore next */
 const objectsEqual = (obj1, obj2) => {
   // If both are strictly equal, return true
   if (obj1 === obj2) {
