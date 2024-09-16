@@ -1,3 +1,13 @@
+## v2.6.10
+
+> `2024-09-16`
+
+### 🐞 Bug Fixes
+  - Option should display as selected even when value is an object
+
+### 🎉 Feature
+  - Optimization (🙏 @bettysteger)
+
 ## v2.6.9
 
 > `2024-07-29`
