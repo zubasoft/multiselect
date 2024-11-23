@@ -1,3 +1,10 @@
+## v2.6.11
+
+> `2024-11-23`
+
+### 🐞 Bug Fixes
+  - Don't throw error when endpoint type `options` is undefined
+
 ## v2.6.10
 
 > `2024-09-16`
