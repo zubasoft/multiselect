@@ -21,9 +21,11 @@ export default function useScroll (props, context, dep)
   // ================ DATA ================
 
   // no export
-  const observer = ref(null)
+  const observer = ref(null);
 
-  const infiniteLoader = shallowRef(null)
+  const infiniteLoader = shallowRef(null);
+
+  const scrollingBox = ref(null);
 
   // ============== COMPUTED ==============
 
@@ -39,8 +41,10 @@ export default function useScroll (props, context, dep)
     const { isIntersecting, target } = entries[0]
 
     if (isIntersecting) {
+
       const parent = target.offsetParent
       const scrollTop = parent.scrollTop
+        scrollingBox.value = parent;
 
         let result = resolveOptions(search.value, options);
 
@@ -92,6 +96,9 @@ export default function useScroll (props, context, dep)
 
     offset.value = 0;
     moreToFetch.value = true;
+    if(scrollingBox.value) {
+        scrollingBox.value.scrollTop = 0;
+    }
 
     observe()
   }, { flush: 'post' })
