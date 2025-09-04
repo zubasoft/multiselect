@@ -199,7 +199,7 @@
                 :class="classList.groupLabel(group)"
                 :data-pointed="isPointed(group)"
                 @mouseenter="setPointer(group, i)"
-                @mousedown.prevent="handleGroupClick(group)"
+                @click="handleGroupClick(group)"
               >
                 <slot name="grouplabel" :group="group" :is-selected="isSelected" :is-pointed="isPointed">
                   <span v-html="localize(group[groupLabel])"></span>
@@ -219,7 +219,7 @@
                   :data-selected="isSelected(option) || undefined"
                   :key="key"
                   @mouseenter="setPointer(option)"
-                  @mousedown.prevent="handleOptionClick(option)"
+                  @click="handleOptionClick(option)"
 
                   :id="ariaOptionId(option)"
                   :aria-selected="isSelected(option)"
@@ -241,7 +241,7 @@
               :data-selected="isSelected(option) || undefined"
               :key="key"
               @mouseenter="setPointer(option)"
-              @mousedown.prevent="handleOptionClick(option)"
+              @click="handleOptionClick(option)"
 
               :id="ariaOptionId(option)"
               :aria-selected="isSelected(option)"
@@ -344,6 +344,7 @@
       id: {
         type: [String, Number],
         required: false,
+        default: undefined,
       },
       name: {
         type: [String, Number],
@@ -463,6 +464,7 @@
       multipleLabel: {
         type: Function,
         required: false,
+        default: undefined,
       },
       object: {
         type: Boolean,
@@ -562,6 +564,7 @@
       autocomplete: {
         type: String,
         required: false,
+        default: undefined,
       },
       groups: {
         type: Boolean,
@@ -601,6 +604,7 @@
       onCreate: {
         required: false,
         type: Function,
+        default: undefined,
       },
       disabledProp: {
         type: String,
@@ -680,6 +684,7 @@
       appendTo: {
         required: false,
         type: String,
+        default: undefined,
       },
     },
 
@@ -703,7 +708,7 @@
       ])
     },
     beforeMount() {
-      if (this.$root.constructor?.version?.match(/^2\./) || this.vueVersionMs === 2) {
+      if ((this.$root.constructor && this.$root.constructor.version && this.$root.constructor.version.match(/^2\./)) || this.vueVersionMs === 2) {
         if (!this.$options.components.Teleport) {
           this.$options.components.Teleport = {
             render() {

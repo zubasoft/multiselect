@@ -1,7 +1,7 @@
-import { toRefs, getCurrentInstance, ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { toRefs, getCurrentInstance, customRef, ref, computed, watch, nextTick, onMounted, onBeforeUnmount, shallowRef } from 'vue';
 
 function isNullish (val) {
-  return [null, undefined].indexOf(val) !== -1
+  return val === null || val === undefined
 }
 
 function useData (props, context, dep)
@@ -64,6 +64,12 @@ function useData (props, context, dep)
   }
 }
 
+// Polyfill for Vue <3.3 for getters only
+// https://vuejs.org/api/reactivity-utilities.html#toref
+function toRef (get) {
+    return customRef(() => ({ get, set: /* istanbul ignore next */ () => { } }))
+}
+
 function useValue (props, context)
 {
   const { value, modelValue, mode, valueProp } = toRefs(props);
@@ -77,15 +83,15 @@ function useValue (props, context)
 
   /* istanbul ignore next */
   // externalValue
-  const ev = computed(() => {
-    return modelValue && modelValue.value !== undefined ? modelValue.value : value.value
+  const ev = toRef(() => {
+    return modelValue.value !== undefined ? modelValue.value : value.value
   });
 
   const plainValue = computed(() => {
     return mode.value === 'single' ? iv.value[valueProp.value] : iv.value.map(v=>v[valueProp.value])
   });
 
-  const textValue = computed(() => {
+  const textValue = toRef(() => {
     return mode.value !== 'single' ? iv.value.map(v=>v[valueProp.value]).join(',') : iv.value[valueProp.value]
   });
 
@@ -125,7 +131,7 @@ function useSearch (props, context, dep)
   };
 
   const handleKeypress = (e) => {
-    if (regex && regex.value) {
+    if (regex.value) {
       let regexp = regex.value;
 
       if (typeof regexp === 'string') {
@@ -139,7 +145,7 @@ function useSearch (props, context, dep)
   };
 
   const handlePaste = (e) => {
-    if (regex && regex.value) {
+    if (regex.value) {
       let clipboardData = e.clipboardData || /* istanbul ignore next */ window.clipboardData;
       let pastedData = clipboardData.getData('Text');
 
@@ -215,9 +221,9 @@ function normalize (str, strict = true) {
     : String(str).toLowerCase()
                  .normalize('NFD')
                  .trim()
-                 .replace(new RegExp(/æ/g), 'ae')
-                 .replace(new RegExp(/œ/g), 'oe')
-                 .replace(new RegExp(/ø/g), 'o')
+                 .replace(/æ/g, 'ae')
+                 .replace(/œ/g, 'oe')
+                 .replace(/ø/g, 'o')
                  .replace(/\p{Diacritic}/gu, '')
 }
 
@@ -226,12 +232,53 @@ function isObject (variable) {
 }
 
 function arraysEqual (array1, array2) {
+  if (array1.length !== array2.length) {
+    return false;
+  }
+  
   const array2Sorted = array2.slice().sort();
 
-  return array1.length === array2.length && array1.slice().sort().every(function(value, index) {
+  return array1.slice().sort().every(function(value, index) {
       return value === array2Sorted[index];
   })
 }
+
+/* istanbul ignore next */
+const objectsEqual = (obj1, obj2) => {
+  // If both are strictly equal, return true
+  if (obj1 === obj2) {
+    return true
+  }
+
+  // If either is not an object or is null, return false (handles primitive types and null)
+  if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) {
+    return false
+  }
+
+  // Get the keys of both objects
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  // If they have a different number of keys, they're not equal
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+
+  // Compare each key-value pair recursively
+  for (let key of keys1) {
+    // Check if both objects have the same key
+    if (!keys2.includes(key)) {
+      return false
+    }
+
+    // Recursively compare the values
+    if (!objectsEqual(obj1[key], obj2[key])) {
+      return false
+    }
+  }
+
+  return true
+};
 
 function useOptions (props, context, dep)
 {
@@ -279,13 +326,18 @@ function useOptions (props, context, dep)
 
   // ============== COMPUTED ==============
 
+  const resolvedOptions = computed({
+    get: () => ro.value,
+    set: (v) => ro.value = v
+  });
+
   // no export
-  const createOption = computed(() => {
+  const createOption = toRef(() => {
     return createTag.value || createOption_.value || false
   });
 
   // no export
-  const appendNewOption = computed(() => {
+  const appendNewOption = toRef(() => {
     if (appendNewTag.value !== undefined) {
       return appendNewTag.value
     } else if (appendNewOption_.value !== undefined) {
@@ -421,17 +473,17 @@ function useOptions (props, context, dep)
   });
 
   const multipleLabelText = computed(() => {
-    return multipleLabel !== undefined && multipleLabel.value !== undefined
+    return multipleLabel.value !== undefined
       ? multipleLabel.value(iv.value, $this)
       : (iv.value && iv.value.length > 1 ? `${iv.value.length} options selected` : `1 option selected`)
   });
 
-  const noOptions = computed(() => {
+  const noOptions = toRef(() => {
     return !eo.value.length && !resolving.value && !createdOption.value.length
   });
 
 
-  const noResults = computed(() => {
+  const noResults = toRef(() => {
     return eo.value.length > 0 && fo.value.length == 0 && ((search.value && groupped.value) || !groupped.value)
   });
 
@@ -458,7 +510,7 @@ function useOptions (props, context, dep)
   });
 
   // no export
-  const nullValue = computed(() => {
+  const nullValue = toRef(() => {
     switch (mode.value) {
       case 'single':
         return null
@@ -469,7 +521,7 @@ function useOptions (props, context, dep)
     }
   });
 
-  const busy = computed(() => {
+  const busy = toRef(() => {
     return loading.value || resolving.value
   });
 
@@ -548,7 +600,10 @@ function useOptions (props, context, dep)
 
     switch (mode.value) {
       case 'single':
-        return !isNullish(iv.value) && iv.value[valueProp.value] == option[valueProp.value]
+        return !isNullish(iv.value) && (
+          iv.value[valueProp.value] == option[valueProp.value] ||
+          (typeof iv.value[valueProp.value] === 'object' && typeof option[valueProp.value] === 'object' && objectsEqual(iv.value[valueProp.value], option[valueProp.value]))
+        )
 
       case 'tags':
       case 'multiple':
@@ -573,7 +628,7 @@ function useOptions (props, context, dep)
       return
     }
 
-    if (onCreate && onCreate.value && !isSelected(option) && option.__CREATE__) {
+    if (onCreate.value && !isSelected(option) && option.__CREATE__) {
       option = { ...option };
       delete option.__CREATE__;
 
@@ -853,9 +908,14 @@ function useOptions (props, context, dep)
     }
 
     // Transforming an plain arrays to an array of objects
-    uo = uo.map((val) => {
-      return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value[0]]: val, [label.value]: val}
-    });
+    /* istanbul ignore else */
+    if (uo && Array.isArray(uo)) {
+      uo = uo.map((val) => {
+        return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value[0]]: val, [label.value]: val}
+      });
+    } else {
+      uo = [];
+    }
 
     return uo
   };
@@ -1066,6 +1126,7 @@ function useOptions (props, context, dep)
   });
 
   return {
+    resolvedOptions,
     pfo,
     fo,
     filteredOptions: fo,
@@ -1132,11 +1193,11 @@ function usePointer (props, context, dep)
     return fg.value.filter(g => !g[disabledProp.value])
   });
 
-  const canPointGroups = computed(() => {
+  const canPointGroups = toRef(() => {
     return mode.value !== 'single' && groupSelect.value
   });
 
-  const isPointerGroup = computed(() => {
+  const isPointerGroup = toRef(() => {
     return pointer.value && pointer.value.group
   });
 
@@ -1340,7 +1401,7 @@ function usePointer (props, context, dep)
   });
 
   watch(isOpen, (val) => {
-    if (val && multiselect?.value) {
+    if (val && multiselect && multiselect.value) {
       let firstSelected = multiselect.value.querySelectorAll(`[data-selected]`)[0];
 
       if (!firstSelected) {
@@ -1350,10 +1411,11 @@ function usePointer (props, context, dep)
       let wrapper = firstSelected.parentElement.parentElement;
       
       nextTick(() => {
+        // Removed because of #406
         /* istanbul ignore next */
-        if (wrapper.scrollTop > 0) {
-          return
-        }
+        // if (wrapper.scrollTop > 0) {
+        //   return
+        // }
 
         wrapper.scrollTop = firstSelected.offsetTop;
       });
@@ -2989,11 +3051,11 @@ function useDropdown (props, context, dep)
   
   // ============== COMPUTED ==============
 
-  const appended = computed(() => {
+  const appended = toRef(() => {
     return appendTo.value || appendToBody.value
   });
 
-  const placement = computed(() => {
+  const placement = toRef(() => {
     return (openDirection.value === 'top' && forcedPlacement.value === 'bottom') ||
            (openDirection.value === 'bottom' && forcedPlacement.value !== 'top')
             ? 'bottom'
@@ -3145,7 +3207,7 @@ function useMultiselect (props, context, dep)
 
   // ============== COMPUTED ==============
 
-  const tabindex = computed(() => {
+  const tabindex = toRef(() => {
     return searchable.value || disabled.value ? -1 : 0
   });
 
@@ -3274,12 +3336,12 @@ function useKeyboard (props, context, dep)
   // ============== COMPUTED ==============
 
   // no export
-  const createOption = computed(() => {
+  const createOption = toRef(() => {
     return createTag.value || createOption_.value || false
   });
 
   // no export
-  const addOptionOn = computed(() => {
+  const addOptionOn = toRef(() => {
     if (addTagOn.value !== undefined) {
       return addTagOn.value
     }
@@ -3506,7 +3568,7 @@ function useClasses (props, context, dependencies)
 
   // ============== COMPUTED ==============
 
-  const classes = computed(() => ({
+  const classes = toRef(() => ({
     container: 'multiselect',
     containerDisabled: 'is-disabled',
     containerOpen: 'is-open',
@@ -3563,7 +3625,7 @@ function useClasses (props, context, dependencies)
     ...classes_.value,
   }));
 
-  const showDropdown = computed(() => {
+  const showDropdown = toRef(() => {
     return !!(isOpen.value && showOptions.value && (!resolving.value || (resolving.value && fo.value.length)))
   });
 
@@ -3669,11 +3731,11 @@ function useScroll (props, context, dep)
   // no export
   const observer = ref(null);
 
-  const infiniteLoader = ref(null);
+  const infiniteLoader = shallowRef(null);
 
   // ============== COMPUTED ==============
 
-  const hasMore = computed(() => {
+  const hasMore = toRef(() => {
     return offset.value < pfo.value.length
   });
 
@@ -3767,72 +3829,50 @@ function useA11y (props, context, dep)
 
   // ============== COMPUTED ==============
 
-  const ariaAssist = computed(() => {
-    let texts = [];
+  const ariaAssist = toRef(() => (
+    `${id.value ? id.value + '-' : ''}assist`
+  ));
 
-    if (id && id.value) {
-      texts.push(id.value);
-    }
+  const ariaControls = toRef(() => (
+    `${id.value ? id.value + '-' : ''}multiselect-options`
+  ));
 
-    texts.push('assist');
-
-    return texts.join('-')
-  });
-
-  const ariaControls = computed(() => {
-    let texts = [];
-
-    if (id && id.value) {
-      texts.push(id.value);
-    }
-
-    texts.push('multiselect-options');
-
-    return texts.join('-')
-  });
-
-  const ariaActiveDescendant = computed(() => {
-    let texts = [];
-
-    if (id && id.value) {
-      texts.push(id.value);
-    }
-
+  const ariaActiveDescendant = toRef(() => {
     if (pointer.value) {
-      texts.push(pointer.value.group ? 'multiselect-group' : 'multiselect-option');
+      let texts = id.value
+        ? `${id.value}-`
+        : '';
 
-      texts.push(pointer.value.group ? pointer.value.index : pointer.value[valueProp.value]);
+      texts += `${pointer.value.group ? 'multiselect-group' : 'multiselect-option'}-`;
 
-      return texts.join('-')
+      texts += pointer.value.group ? pointer.value.index : pointer.value[valueProp.value];
+
+      return texts
     }
   });
 
-
-
-  const ariaPlaceholder = computed(() => {
+  const ariaPlaceholder = toRef(() => {
     return placeholder.value
   });
 
-  const ariaMultiselectable = computed(() => {
+  const ariaMultiselectable = toRef(() => {
     return mode.value !== 'single'
   });
 
   const ariaLabel = computed(() => {
-    let ariaLabel = '';
-
     if (mode.value === 'single' && hasSelected.value) {
-      ariaLabel += iv.value[labelProp.value];
+      return iv.value[labelProp.value]
     }
 
     if (mode.value === 'multiple' && hasSelected.value) {
-      ariaLabel += multipleLabelText.value;
+      return multipleLabelText.value
     }
 
     if (mode.value === 'tags' && hasSelected.value) {
-      ariaLabel += iv.value.map(v => v[labelProp.value]).join(', ');
+      return iv.value.map(v => v[labelProp.value]).join(', ')
     }
 
-    return ariaLabel
+    return ''
   });
 
   const arias = computed(() => {
@@ -3855,59 +3895,25 @@ function useA11y (props, context, dep)
 
   // =============== METHODS ==============
 
-  const ariaOptionId = (option) => {
-    let texts = [];
+  const ariaOptionId = (option) => (
+    `${id.value ? id.value + '-' : ''}multiselect-option-${option[valueProp.value]}`
+  );
 
-    if (id && id.value) {
-      texts.push(id.value);
-    }
+  const ariaGroupId = (option) => (
+    `${id.value ? id.value + '-' : ''}multiselect-group-${option.index}`
+  );
 
-    texts.push('multiselect-option');
+  const ariaOptionLabel = (label) => `${label}`;
 
-    texts.push(option[valueProp.value]);
+  const ariaGroupLabel = (label) => `${label}`;
 
-    return texts.join('-')
-  };
-
-  const ariaGroupId = (option) => {
-    let texts = [];
-
-    if (id && id.value) {
-      texts.push(id.value);
-    }
-
-    texts.push('multiselect-group');
-
-    texts.push(option.index);
-
-    return texts.join('-')
-  };
-
-  const ariaOptionLabel = (label) => {
-    let texts = [];
-
-    texts.push(label);
-
-    return texts.join(' ')
-  };
-
-  const ariaGroupLabel = (label) => {
-    let texts = [];
-
-    texts.push(label);
-
-    return texts.join(' ')
-  };
-
-  const ariaTagLabel = (label) => {
-    return `${label} ❎`
-  };
+  const ariaTagLabel = (label) => `${label} ❎`;
 
   // =============== HOOKS ================
 
   onMounted(() => {
     /* istanbul ignore next */
-    if (id && id.value && document && document.querySelector) {
+    if (id.value && document && document.querySelector) {
       let forTag = document.querySelector(`[for="${id.value}"]`);
       label.value = forTag ? forTag.innerText : null;
     }
@@ -3966,15 +3972,15 @@ function useRefs (props, context, dep)
 {
   // ================ DATA ================
 
-  const multiselect = ref(null);
+  const multiselect = shallowRef(null);
   
-  const wrapper = ref(null);
+  const wrapper = shallowRef(null);
 
-  const tags = ref(null);
+  const tags = shallowRef(null);
 
-  const input = ref(null);
+  const input = shallowRef(null);
 
-  const dropdown = ref(null);
+  const dropdown = shallowRef(null);
 
   return {
     multiselect,
@@ -3987,14 +3993,10 @@ function useRefs (props, context, dep)
 
 function resolveDeps (props, context, features, deps = {}) {
   features.forEach((composable) => {
-    /* istanbul ignore else */
-    if (composable) {
-      deps = {
-        ...deps,
-        ...composable(props, context, deps)
-      };
-    }
-
+    deps = {
+      ...deps,
+      ...composable(props, context, deps)
+    };
   });
   
   return deps
@@ -4024,6 +4026,7 @@ function resolveDeps (props, context, features, deps = {}) {
       id: {
         type: [String, Number],
         required: false,
+        default: undefined,
       },
       name: {
         type: [String, Number],
@@ -4128,6 +4131,7 @@ function resolveDeps (props, context, features, deps = {}) {
       multipleLabel: {
         type: Function,
         required: false,
+        default: undefined,
       },
       object: {
         type: Boolean,
@@ -4222,6 +4226,7 @@ function resolveDeps (props, context, features, deps = {}) {
       autocomplete: {
         type: String,
         required: false,
+        default: undefined,
       },
       groups: {
         type: Boolean,
@@ -4261,6 +4266,7 @@ function resolveDeps (props, context, features, deps = {}) {
       onCreate: {
         required: false,
         type: Function,
+        default: undefined,
       },
       disabledProp: {
         type: String,
@@ -4340,6 +4346,7 @@ function resolveDeps (props, context, features, deps = {}) {
       appendTo: {
         required: false,
         type: String,
+        default: undefined,
       },
     },
     setup(props, context)
@@ -4362,7 +4369,7 @@ function resolveDeps (props, context, features, deps = {}) {
       ])
     },
     beforeMount() {
-      if (this.$root.constructor?.version?.match(/^2\./) || this.vueVersionMs === 2) {
+      if ((this.$root.constructor && this.$root.constructor.version && this.$root.constructor.version.match(/^2\./)) || this.vueVersionMs === 2) {
         if (!this.$options.components.Teleport) {
           this.$options.components.Teleport = {
             render() {
@@ -4876,8 +4883,7 @@ var __vue_render__ = function () {
                                       mouseenter: function ($event) {
                                         return _vm.setPointer(group, i)
                                       },
-                                      mousedown: function ($event) {
-                                        $event.preventDefault();
+                                      click: function ($event) {
                                         return _vm.handleGroupClick(group)
                                       },
                                     },
@@ -4946,8 +4952,7 @@ var __vue_render__ = function () {
                                         mouseenter: function ($event) {
                                           return _vm.setPointer(option)
                                         },
-                                        mousedown: function ($event) {
-                                          $event.preventDefault();
+                                        click: function ($event) {
                                           return _vm.handleOptionClick(option)
                                         },
                                       },
@@ -5006,8 +5011,7 @@ var __vue_render__ = function () {
                               mouseenter: function ($event) {
                                 return _vm.setPointer(option)
                               },
-                              mousedown: function ($event) {
-                                $event.preventDefault();
+                              click: function ($event) {
                                 return _vm.handleOptionClick(option)
                               },
                             },

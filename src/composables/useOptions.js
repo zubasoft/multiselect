@@ -3,6 +3,8 @@ import normalize from './../utils/normalize'
 import isObject from './../utils/isObject'
 import isNullish from './../utils/isNullish'
 import arraysEqual from './../utils/arraysEqual'
+import objectsEqual from './../utils/objectsEqual'
+import toRef from './../utils/toRef'
 
 export default function useOptions (props, context, dep)
 {
@@ -52,13 +54,18 @@ export default function useOptions (props, context, dep)
 
   // ============== COMPUTED ==============
 
+  const resolvedOptions = computed({
+    get: () => ro.value,
+    set: (v) => ro.value = v
+  })
+
   // no export
-  const createOption = computed(() => {
+  const createOption = toRef(() => {
     return createTag.value || createOption_.value || false
   })
 
   // no export
-  const appendNewOption = computed(() => {
+  const appendNewOption = toRef(() => {
     if (appendNewTag.value !== undefined) {
       return appendNewTag.value
     } else if (appendNewOption_.value !== undefined) {
@@ -193,17 +200,17 @@ export default function useOptions (props, context, dep)
   })
 
   const multipleLabelText = computed(() => {
-    return multipleLabel !== undefined && multipleLabel.value !== undefined
+    return multipleLabel.value !== undefined
       ? multipleLabel.value(iv.value, $this)
       : (iv.value && iv.value.length > 1 ? `${iv.value.length} options selected` : `1 option selected`)
   })
 
-  const noOptions = computed(() => {
+  const noOptions = toRef(() => {
     return !eo.value.length && !resolving.value && !createdOption.value.length
   })
 
 
-  const noResults = computed(() => {
+  const noResults = toRef(() => {
     return eo.value.length > 0 && fo.value.length == 0 && ((search.value && groupped.value) || !groupped.value)
   })
 
@@ -230,7 +237,7 @@ export default function useOptions (props, context, dep)
   })
 
   // no export
-  const nullValue = computed(() => {
+  const nullValue = toRef(() => {
     switch (mode.value) {
       case 'single':
         return null
@@ -241,7 +248,7 @@ export default function useOptions (props, context, dep)
     }
   })
 
-  const busy = computed(() => {
+  const busy = toRef(() => {
     return loading.value || resolving.value
   })
 
@@ -325,7 +332,10 @@ export default function useOptions (props, context, dep)
 
     switch (mode.value) {
       case 'single':
-        return !isNullish(iv.value) && iv.value[valueProp.value] == option[valueProp.value]
+        return !isNullish(iv.value) && (
+          iv.value[valueProp.value] == option[valueProp.value] ||
+          (typeof iv.value[valueProp.value] === 'object' && typeof option[valueProp.value] === 'object' && objectsEqual(iv.value[valueProp.value], option[valueProp.value]))
+        )
 
       case 'tags':
       case 'multiple':
@@ -350,7 +360,7 @@ export default function useOptions (props, context, dep)
       return
     }
 
-    if (onCreate && onCreate.value && !isSelected(option) && option.__CREATE__) {
+    if (onCreate.value && !isSelected(option) && option.__CREATE__) {
       option = { ...option }
       delete option.__CREATE__
 
@@ -637,9 +647,14 @@ export default function useOptions (props, context, dep)
     }
 
     // Transforming an plain arrays to an array of objects
-    uo = uo.map((val) => {
-      return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value[0]]: val, [label.value]: val}
-    })
+    /* istanbul ignore else */
+    if (uo && Array.isArray(uo)) {
+      uo = uo.map((val) => {
+        return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value[0]]: val, [label.value]: val}
+      })
+    } else {
+      uo = []
+    }
 
     return uo
   }
@@ -864,6 +879,7 @@ export default function useOptions (props, context, dep)
   })
 
   return {
+    resolvedOptions,
     pfo,
     fo,
     filteredOptions: fo,

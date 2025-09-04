@@ -1,37 +1,22 @@
-import { toRefs, getCurrentInstance, ref, computed, watch, nextTick, onMounted, onBeforeUnmount, openBlock, createElementBlock, normalizeClass, createElementVNode, mergeProps, createCommentVNode, withModifiers, Fragment, renderList, renderSlot, withKeys, toDisplayString, createBlock, Teleport } from 'vue';
+import { toRefs, getCurrentInstance, customRef, ref, computed, watch, nextTick, onMounted, onBeforeUnmount, shallowRef, openBlock, createElementBlock, normalizeClass, createElementVNode, mergeProps, createCommentVNode, withModifiers, Fragment, renderList, renderSlot, withKeys, toDisplayString, createBlock, Teleport } from 'vue';
 
 function isNullish (val) {
-  return [null, undefined].indexOf(val) !== -1
+  return val === null || val === undefined
 }
 
 function useData (props, context, dep)
 {
-  const { object, valueProp, mode, options} = toRefs(props);
+  const { object, valueProp, mode } = toRefs(props);
 
   const $this = getCurrentInstance().proxy;
 
   // ============ DEPENDENCIES ============
 
   const iv = dep.iv;
-  const updateSearchAtSelection = dep.updateSearchAtSelection;
 
   // =============== METHODS ==============
 
   const update = (val, triggerInput = true) => {
-    if(mode.value === 'single') {
-      updateSearchAtSelection(val);
-    } else {
-      if(Array.isArray(val)) {
-        val = val.map((v) => {
-          if(typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
-            return options._object.options.filter((o) => { return o[valueProp.value].toString() === v.toString() })[0];
-          }
-
-          return v;
-        });
-      }
-    }
-
     // Setting object(s) as internal value
     iv.value = makeInternal(val);
 
@@ -79,6 +64,12 @@ function useData (props, context, dep)
   }
 }
 
+// Polyfill for Vue <3.3 for getters only
+// https://vuejs.org/api/reactivity-utilities.html#toref
+function toRef (get) {
+    return customRef(() => ({ get, set: /* istanbul ignore next */ () => { } }))
+}
+
 function useValue (props, context)
 {
   const { value, modelValue, mode, valueProp } = toRefs(props);
@@ -92,15 +83,15 @@ function useValue (props, context)
 
   /* istanbul ignore next */
   // externalValue
-  const ev = computed(() => {
-    return modelValue && modelValue.value !== undefined ? modelValue.value : value.value
+  const ev = toRef(() => {
+    return modelValue.value !== undefined ? modelValue.value : value.value
   });
 
   const plainValue = computed(() => {
     return mode.value === 'single' ? iv.value[valueProp.value] : iv.value.map(v=>v[valueProp.value])
   });
 
-  const textValue = computed(() => {
+  const textValue = toRef(() => {
     return mode.value !== 'single' ? iv.value.map(v=>v[valueProp.value]).join(',') : iv.value[valueProp.value]
   });
 
@@ -124,36 +115,15 @@ function useSearch (props, context, dep)
 
   const isOpen = dep.isOpen;
   const open = dep.open;
-  const iv = dep.iv;
-  const isActive = dep.isActive;
 
   // ================ DATA ================
 
   const search = ref(null);
 
-  const fromInit = ref(null);
   // =============== METHODS ==============
 
   const clearSearch = () => {
     search.value = '';
-  };
-
-  const updateSearchAtSelection = (value) => {
-    if(isActive?.value) {
-      search.value = value.label || '';
-    }
-  };
-
-  const initSearch = (e) => {
-    if(isOpen.value /*|| !isActive?.value*/) {
-      return;
-    }
-
-    fromInit.value = true;
-    search.value = iv.value.label || '';
-    setTimeout(() => {
-      fromInit.value = false;
-    }, 0);
   };
 
   const handleSearchInput = (e) => {
@@ -161,7 +131,7 @@ function useSearch (props, context, dep)
   };
 
   const handleKeypress = (e) => {
-    if (regex && regex.value) {
+    if (regex.value) {
       let regexp = regex.value;
 
       if (typeof regexp === 'string') {
@@ -175,7 +145,7 @@ function useSearch (props, context, dep)
   };
 
   const handlePaste = (e) => {
-    if (regex && regex.value) {
+    if (regex.value) {
       let clipboardData = e.clipboardData || /* istanbul ignore next */ window.clipboardData;
       let pastedData = clipboardData.getData('Text');
 
@@ -196,7 +166,7 @@ function useSearch (props, context, dep)
   // ============== WATCHERS ==============
 
   watch(search, (val) => {
-    if (!isOpen.value && val && !fromInit.value) {
+    if (!isOpen.value && val) {
       open();
     }
 
@@ -206,8 +176,6 @@ function useSearch (props, context, dep)
   return {
     search,
     clearSearch,
-    initSearch,
-    updateSearchAtSelection,
     handleSearchInput,
     handleKeypress,
     handlePaste,
@@ -253,9 +221,9 @@ function normalize (str, strict = true) {
     : String(str).toLowerCase()
                  .normalize('NFD')
                  .trim()
-                 .replace(new RegExp(/æ/g), 'ae')
-                 .replace(new RegExp(/œ/g), 'oe')
-                 .replace(new RegExp(/ø/g), 'o')
+                 .replace(/æ/g, 'ae')
+                 .replace(/œ/g, 'oe')
+                 .replace(/ø/g, 'o')
                  .replace(/\p{Diacritic}/gu, '')
 }
 
@@ -264,12 +232,53 @@ function isObject (variable) {
 }
 
 function arraysEqual (array1, array2) {
+  if (array1.length !== array2.length) {
+    return false;
+  }
+  
   const array2Sorted = array2.slice().sort();
 
-  return array1.length === array2.length && array1.slice().sort().every(function(value, index) {
+  return array1.slice().sort().every(function(value, index) {
       return value === array2Sorted[index];
   })
 }
+
+/* istanbul ignore next */
+const objectsEqual = (obj1, obj2) => {
+  // If both are strictly equal, return true
+  if (obj1 === obj2) {
+    return true
+  }
+
+  // If either is not an object or is null, return false (handles primitive types and null)
+  if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) {
+    return false
+  }
+
+  // Get the keys of both objects
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  // If they have a different number of keys, they're not equal
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+
+  // Compare each key-value pair recursively
+  for (let key of keys1) {
+    // Check if both objects have the same key
+    if (!keys2.includes(key)) {
+      return false
+    }
+
+    // Recursively compare the values
+    if (!objectsEqual(obj1[key], obj2[key])) {
+      return false
+    }
+  }
+
+  return true
+};
 
 function useOptions (props, context, dep)
 {
@@ -297,8 +306,6 @@ function useOptions (props, context, dep)
   const deactivate = dep.deactivate;
   const close = dep.close;
   const localize = dep.localize;
-  dep.wrapper;
-  const keyboardFocusHelper = dep.keyboardFocusHelper;
 
   // ================ DATA ================
 
@@ -319,13 +326,18 @@ function useOptions (props, context, dep)
 
   // ============== COMPUTED ==============
 
+  const resolvedOptions = computed({
+    get: () => ro.value,
+    set: (v) => ro.value = v
+  });
+
   // no export
-  const createOption = computed(() => {
+  const createOption = toRef(() => {
     return createTag.value || createOption_.value || false
   });
 
   // no export
-  const appendNewOption = computed(() => {
+  const appendNewOption = toRef(() => {
     if (appendNewTag.value !== undefined) {
       return appendNewTag.value
     } else if (appendNewOption_.value !== undefined) {
@@ -452,7 +464,8 @@ function useOptions (props, context, dep)
   const hasSelected = computed(() => {
     switch (mode.value) {
       case 'single':
-        return !isNullish(iv.value[valueProp.value]) && (iv.value[label.value] !== '') // iv.value[valueProp.value] !== '' &&
+        return !isNullish(iv.value[valueProp.value])
+
       case 'multiple':
       case 'tags':
         return !isNullish(iv.value) && iv.value.length > 0
@@ -460,17 +473,17 @@ function useOptions (props, context, dep)
   });
 
   const multipleLabelText = computed(() => {
-    return multipleLabel !== undefined && multipleLabel.value !== undefined
+    return multipleLabel.value !== undefined
       ? multipleLabel.value(iv.value, $this)
       : (iv.value && iv.value.length > 1 ? `${iv.value.length} options selected` : `1 option selected`)
   });
 
-  const noOptions = computed(() => {
+  const noOptions = toRef(() => {
     return !eo.value.length && !resolving.value && !createdOption.value.length
   });
 
 
-  const noResults = computed(() => {
+  const noResults = toRef(() => {
     return eo.value.length > 0 && fo.value.length == 0 && ((search.value && groupped.value) || !groupped.value)
   });
 
@@ -497,7 +510,7 @@ function useOptions (props, context, dep)
   });
 
   // no export
-  const nullValue = computed(() => {
+  const nullValue = toRef(() => {
     switch (mode.value) {
       case 'single':
         return null
@@ -508,7 +521,7 @@ function useOptions (props, context, dep)
     }
   });
 
-  const busy = computed(() => {
+  const busy = toRef(() => {
     return loading.value || resolving.value
   });
 
@@ -559,12 +572,7 @@ function useOptions (props, context, dep)
 
   // no export
   const finalValue = (option) => {
-    try {
-      return object.value ? option : option[valueProp.value];
-    } catch(e) {
-      console.error(e);
-      return undefined;
-    }
+    return object.value ? option : option[valueProp.value]
   };
 
   const remove = (option) => {
@@ -592,7 +600,10 @@ function useOptions (props, context, dep)
 
     switch (mode.value) {
       case 'single':
-        return !isNullish(iv.value) && iv.value[valueProp.value] == option[valueProp.value]
+        return !isNullish(iv.value) && (
+          iv.value[valueProp.value] == option[valueProp.value] ||
+          (typeof iv.value[valueProp.value] === 'object' && typeof option[valueProp.value] === 'object' && objectsEqual(iv.value[valueProp.value], option[valueProp.value]))
+        )
 
       case 'tags':
       case 'multiple':
@@ -617,7 +628,7 @@ function useOptions (props, context, dep)
       return
     }
 
-    if (onCreate && onCreate.value && !isSelected(option) && option.__CREATE__) {
+    if (onCreate.value && !isSelected(option) && option.__CREATE__) {
       option = { ...option };
       delete option.__CREATE__;
 
@@ -669,9 +680,6 @@ function useOptions (props, context, dep)
         if (closeOnSelect.value) {
           clearPointer();
           close();
-
-          //wrapper.value.focus();
-          keyboardFocusHelper.value.focus();
         }
 
         if (option) {
@@ -819,10 +827,6 @@ function useOptions (props, context, dep)
   };
 
   const getOption = (val) => {
-    if(typeof val === 'object') {
-      return undefined;
-    }
-
     return eo.value[eo.value.map(o => String(o[valueProp.value])).indexOf(String(val))]
   };
 
@@ -904,9 +908,14 @@ function useOptions (props, context, dep)
     }
 
     // Transforming an plain arrays to an array of objects
-    uo = uo.map((val) => {
-      return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value[0]]: val, [label.value]: val}
-    });
+    /* istanbul ignore else */
+    if (uo && Array.isArray(uo)) {
+      uo = uo.map((val) => {
+        return typeof val === 'object' ? val : { [valueProp.value]: val, [trackBy.value[0]]: val, [label.value]: val}
+      });
+    } else {
+      uo = [];
+    }
 
     return uo
   };
@@ -994,29 +1003,15 @@ function useOptions (props, context, dep)
     }
 
     // If external should be plain transform value object to plain values
-    let u_return = {};
-    if(mode.value === 'single') {
-      u_return = getOption(val);
-      if(!u_return) {
-        if(allowAbsent.value && typeof val !== 'object') { // sometime val is an event object - do not allow this value
-          u_return = {
-            [label.value]: val,
-            [valueProp.value]: val,
-            [trackBy.value[0]]: val,
-          };
-        } else {
-          u_return = {};
-        }
-      }
-    } else {
-      u_return = val.filter(v => !!getOption(v) || allowAbsent.value).map(v => getOption(v) || {
-        [label.value]: v,
-        [valueProp.value]: v,
-        [trackBy.value[0]]: v,
-      });
-    }
-
-    return u_return
+    return mode.value === 'single' ? getOption(val) || (allowAbsent.value ? {
+      [label.value]: val,
+      [valueProp.value]: val,
+      [trackBy.value[0]]: val,
+    } : {}) : val.filter(v => !!getOption(v) || allowAbsent.value).map(v => getOption(v) || {
+      [label.value]: v,
+      [valueProp.value]: v,
+      [trackBy.value[0]]: v,
+    })
   };
 
   // no export
@@ -1131,6 +1126,7 @@ function useOptions (props, context, dep)
   });
 
   return {
+    resolvedOptions,
     pfo,
     fo,
     filteredOptions: fo,
@@ -1197,11 +1193,11 @@ function usePointer (props, context, dep)
     return fg.value.filter(g => !g[disabledProp.value])
   });
 
-  const canPointGroups = computed(() => {
+  const canPointGroups = toRef(() => {
     return mode.value !== 'single' && groupSelect.value
   });
 
-  const isPointerGroup = computed(() => {
+  const isPointerGroup = toRef(() => {
     return pointer.value && pointer.value.group
   });
 
@@ -1405,7 +1401,7 @@ function usePointer (props, context, dep)
   });
 
   watch(isOpen, (val) => {
-    if (val && multiselect?.value) {
+    if (val && multiselect && multiselect.value) {
       let firstSelected = multiselect.value.querySelectorAll(`[data-selected]`)[0];
 
       if (!firstSelected) {
@@ -1415,10 +1411,11 @@ function usePointer (props, context, dep)
       let wrapper = firstSelected.parentElement.parentElement;
       
       nextTick(() => {
+        // Removed because of #406
         /* istanbul ignore next */
-        if (wrapper.scrollTop > 0) {
-          return
-        }
+        // if (wrapper.scrollTop > 0) {
+        //   return
+        // }
 
         wrapper.scrollTop = firstSelected.offsetTop;
       });
@@ -3054,11 +3051,11 @@ function useDropdown (props, context, dep)
   
   // ============== COMPUTED ==============
 
-  const appended = computed(() => {
+  const appended = toRef(() => {
     return appendTo.value || appendToBody.value
   });
 
-  const placement = computed(() => {
+  const placement = toRef(() => {
     return (openDirection.value === 'top' && forcedPlacement.value === 'bottom') ||
            (openDirection.value === 'bottom' && forcedPlacement.value !== 'top')
             ? 'bottom'
@@ -3198,7 +3195,6 @@ function useMultiselect (props, context, dep)
   const open = dep.open;
   const close = dep.close;
   const clearSearch = dep.clearSearch;
-  const initSearch = dep.initSearch;
   const isOpen = dep.isOpen;
   const wrapper = dep.wrapper;
   const tags = dep.tags;
@@ -3207,13 +3203,11 @@ function useMultiselect (props, context, dep)
 
   const isActive = ref(false);
 
-  const keyboardFocusHelper = ref(null);
-
   const mouseClicked = ref(false);
 
   // ============== COMPUTED ==============
 
-  const tabindex = computed(() => {
+  const tabindex = toRef(() => {
     return searchable.value || disabled.value ? -1 : 0
   });
 
@@ -3264,21 +3258,7 @@ function useMultiselect (props, context, dep)
       return
     }
 
-    /* Commented out because always opening is not accessible:
-       https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/
-       Just leaved it there in case we want it again somewhere
-
-    if(mouseClicked.value === false && searchable.value && !e.target?.classList.contains('multiselect-keyboard-focus-helper')) {
-      // Always open the multiselect when searchable (act like an autocomplete)
-      activate(true)
-    } else {*/
-      activate(mouseClicked.value);
-    //}
-
-    if(searchable.value && e.target.nodeName === 'INPUT') {
-      // Set search value to the actual selected value
-      initSearch(e);
-    }
+    activate(mouseClicked.value);
   };
 
   const handleFocusOut = () => {
@@ -3298,7 +3278,7 @@ function useMultiselect (props, context, dep)
       setTimeout(() => {
         deactivate();
       }, 0);
-    } else if (!isOpen.value
+    } else if (!isOpen.value 
       && (document.activeElement.isEqualNode(wrapper.value)
         || document.activeElement.isEqualNode(input.value))) {
       activate();    
@@ -3311,7 +3291,6 @@ function useMultiselect (props, context, dep)
 
   return {
     tabindex,
-    keyboardFocusHelper,
     isActive,
     mouseClicked,
     blur,
@@ -3357,12 +3336,12 @@ function useKeyboard (props, context, dep)
   // ============== COMPUTED ==============
 
   // no export
-  const createOption = computed(() => {
+  const createOption = toRef(() => {
     return createTag.value || createOption_.value || false
   });
 
   // no export
-  const addOptionOn = computed(() => {
+  const addOptionOn = toRef(() => {
     if (addTagOn.value !== undefined) {
       return addTagOn.value
     }
@@ -3428,7 +3407,6 @@ function useKeyboard (props, context, dep)
         }
 
         if (activeIndex !== -1 && activeIndex !== undefined) {
-          // Used only for tags
           update([...iv.value].filter((v, k) => k !== activeIndex));
 
           if (activeIndex === tagList.length - 1) {
@@ -3440,14 +3418,13 @@ function useKeyboard (props, context, dep)
               wrapper.value.focus();
             }
           }
-
           return
         }
 
         if (addOptionOn.value.indexOf('enter') === -1 && createOption.value) {
           return
         }
-
+        
         preparePointer();
         selectPointer();
         break
@@ -3476,7 +3453,6 @@ function useKeyboard (props, context, dep)
         break
       
       case 'Tab':
-        break;
       case ';':
       case ',':
         if (addOptionOn.value.indexOf(e.key.toLowerCase()) === -1 || !createOption.value) {
@@ -3592,7 +3568,7 @@ function useClasses (props, context, dependencies)
 
   // ============== COMPUTED ==============
 
-  const classes = computed(() => ({
+  const classes = toRef(() => ({
     container: 'multiselect',
     containerDisabled: 'is-disabled',
     containerOpen: 'is-open',
@@ -3649,7 +3625,7 @@ function useClasses (props, context, dependencies)
     ...classes_.value,
   }));
 
-  const showDropdown = computed(() => {
+  const showDropdown = toRef(() => {
     return !!(isOpen.value && showOptions.value && (!resolving.value || (resolving.value && fo.value.length)))
   });
 
@@ -3755,11 +3731,11 @@ function useScroll (props, context, dep)
   // no export
   const observer = ref(null);
 
-  const infiniteLoader = ref(null);
+  const infiniteLoader = shallowRef(null);
 
   // ============== COMPUTED ==============
 
-  const hasMore = computed(() => {
+  const hasMore = toRef(() => {
     return offset.value < pfo.value.length
   });
 
@@ -3853,72 +3829,50 @@ function useA11y (props, context, dep)
 
   // ============== COMPUTED ==============
 
-  const ariaAssist = computed(() => {
-    let texts = [];
+  const ariaAssist = toRef(() => (
+    `${id.value ? id.value + '-' : ''}assist`
+  ));
 
-    if (id && id.value) {
-      texts.push(id.value);
-    }
+  const ariaControls = toRef(() => (
+    `${id.value ? id.value + '-' : ''}multiselect-options`
+  ));
 
-    texts.push('assist');
-
-    return texts.join('-')
-  });
-
-  const ariaControls = computed(() => {
-    let texts = [];
-
-    if (id && id.value) {
-      texts.push(id.value);
-    }
-
-    texts.push('multiselect-options');
-
-    return texts.join('-')
-  });
-
-  const ariaActiveDescendant = computed(() => {
-    let texts = [];
-
-    if (id && id.value) {
-      texts.push(id.value);
-    }
-
+  const ariaActiveDescendant = toRef(() => {
     if (pointer.value) {
-      texts.push(pointer.value.group ? 'multiselect-group' : 'multiselect-option');
+      let texts = id.value
+        ? `${id.value}-`
+        : '';
 
-      texts.push(pointer.value.group ? pointer.value.index : pointer.value[valueProp.value]);
+      texts += `${pointer.value.group ? 'multiselect-group' : 'multiselect-option'}-`;
 
-      return texts.join('-')
+      texts += pointer.value.group ? pointer.value.index : pointer.value[valueProp.value];
+
+      return texts
     }
   });
 
-
-
-  const ariaPlaceholder = computed(() => {
+  const ariaPlaceholder = toRef(() => {
     return placeholder.value
   });
 
-  const ariaMultiselectable = computed(() => {
+  const ariaMultiselectable = toRef(() => {
     return mode.value !== 'single'
   });
 
   const ariaLabel = computed(() => {
-    let ariaLabel = '';
-
     if (mode.value === 'single' && hasSelected.value) {
-      ariaLabel += iv.value[labelProp.value];
+      return iv.value[labelProp.value]
     }
 
     if (mode.value === 'multiple' && hasSelected.value) {
-      ariaLabel += multipleLabelText.value;
+      return multipleLabelText.value
     }
 
     if (mode.value === 'tags' && hasSelected.value) {
-      ariaLabel += iv.value.map(v => v[labelProp.value]).join(', ');
+      return iv.value.map(v => v[labelProp.value]).join(', ')
     }
 
-    return ariaLabel
+    return ''
   });
 
   const arias = computed(() => {
@@ -3927,13 +3881,9 @@ function useA11y (props, context, dep)
     // Need to add manually because focusing
     // the input won't read the selected value
     if (searchable.value) {
-      // We can skip this after we have changes the search input to keep the selected value (so the screen reader reads now the selected value) - this also causes that the <label> tag is not read
-      if(mode.value !== 'single') {
-        arias['aria-labelledby'] = arias['aria-labelledby']
-            ? `${ariaAssist.value} ${arias['aria-labelledby']}`
-            : ariaAssist.value;
-      }
-
+      arias['aria-labelledby'] = arias['aria-labelledby']
+        ? `${ariaAssist.value} ${arias['aria-labelledby']}`
+        : ariaAssist.value;
       
       if (ariaLabel.value && arias['aria-label']) {
         arias['aria-label'] = `${ariaLabel.value}, ${arias['aria-label']}`;
@@ -3945,59 +3895,25 @@ function useA11y (props, context, dep)
 
   // =============== METHODS ==============
 
-  const ariaOptionId = (option) => {
-    let texts = [];
+  const ariaOptionId = (option) => (
+    `${id.value ? id.value + '-' : ''}multiselect-option-${option[valueProp.value]}`
+  );
 
-    if (id && id.value) {
-      texts.push(id.value);
-    }
+  const ariaGroupId = (option) => (
+    `${id.value ? id.value + '-' : ''}multiselect-group-${option.index}`
+  );
 
-    texts.push('multiselect-option');
+  const ariaOptionLabel = (label) => `${label}`;
 
-    texts.push(option[valueProp.value]);
+  const ariaGroupLabel = (label) => `${label}`;
 
-    return texts.join('-')
-  };
-
-  const ariaGroupId = (option) => {
-    let texts = [];
-
-    if (id && id.value) {
-      texts.push(id.value);
-    }
-
-    texts.push('multiselect-group');
-
-    texts.push(option.index);
-
-    return texts.join('-')
-  };
-
-  const ariaOptionLabel = (label) => {
-    let texts = [];
-
-    texts.push(label);
-
-    return texts.join(' ')
-  };
-
-  const ariaGroupLabel = (label) => {
-    let texts = [];
-
-    texts.push(label);
-
-    return texts.join(' ')
-  };
-
-  const ariaTagLabel = (label) => {
-    return `${label} ❎`
-  };
+  const ariaTagLabel = (label) => `${label} ❎`;
 
   // =============== HOOKS ================
 
   onMounted(() => {
     /* istanbul ignore next */
-    if (id && id.value && document && document.querySelector) {
+    if (id.value && document && document.querySelector) {
       let forTag = document.querySelector(`[for="${id.value}"]`);
       label.value = forTag ? forTag.innerText : null;
     }
@@ -4056,15 +3972,15 @@ function useRefs (props, context, dep)
 {
   // ================ DATA ================
 
-  const multiselect = ref(null);
+  const multiselect = shallowRef(null);
   
-  const wrapper = ref(null);
+  const wrapper = shallowRef(null);
 
-  const tags = ref(null);
+  const tags = shallowRef(null);
 
-  const input = ref(null);
+  const input = shallowRef(null);
 
-  const dropdown = ref(null);
+  const dropdown = shallowRef(null);
 
   return {
     multiselect,
@@ -4077,14 +3993,10 @@ function useRefs (props, context, dep)
 
 function resolveDeps (props, context, features, deps = {}) {
   features.forEach((composable) => {
-    /* istanbul ignore else */
-    if (composable) {
-      deps = {
-        ...deps,
-        ...composable(props, context, deps)
-      };
-    }
-
+    deps = {
+      ...deps,
+      ...composable(props, context, deps)
+    };
   });
   
   return deps
@@ -4112,6 +4024,7 @@ var script = {
       id: {
         type: [String, Number],
         required: false,
+        default: undefined,
       },
       name: {
         type: [String, Number],
@@ -4213,24 +4126,10 @@ var script = {
         required: false,
         default: 'No results found',
       },
-      clearText: {
-        type: [String, Object],
-        required: false,
-        default: 'Clear',
-      },
-      searchPlaceholderText: {
-        type: [String, Object],
-        required: false,
-        default: 'Search Keyword',
-      },
-      fakeInputHelpText: {
-        type: [String, Object],
-        required: false,
-        default: 'In case you were able to focus this field with your screen reader you can ignore it. It\'s only here for form validation (technical reason).',
-      },
       multipleLabel: {
         type: Function,
         required: false,
+        default: undefined,
       },
       object: {
         type: Boolean,
@@ -4302,11 +4201,6 @@ var script = {
         required: false,
         default: false,
       },
-      wcagSupport: {
-        type: Boolean,
-        required: true,
-        default: false,
-      },
       classes: {
         type: Object,
         required: false,
@@ -4330,6 +4224,7 @@ var script = {
       autocomplete: {
         type: String,
         required: false,
+        default: undefined,
       },
       groups: {
         type: Boolean,
@@ -4369,6 +4264,7 @@ var script = {
       onCreate: {
         required: false,
         type: Function,
+        default: undefined,
       },
       disabledProp: {
         type: String,
@@ -4448,9 +4344,9 @@ var script = {
       appendTo: {
         required: false,
         type: String,
+        default: undefined,
       },
     },
-
     setup(props, context)
     { 
       return resolveDeps(props, context, [
@@ -4471,7 +4367,7 @@ var script = {
       ])
     },
     beforeMount() {
-      if (this.$root.constructor?.version?.match(/^2\./) || this.vueVersionMs === 2) {
+      if ((this.$root.constructor && this.$root.constructor.version && this.$root.constructor.version.match(/^2\./)) || this.vueVersionMs === 2) {
         if (!this.$options.components.Teleport) {
           this.$options.components.Teleport = {
             render() {
@@ -4485,33 +4381,25 @@ var script = {
 
 const _hoisted_1 = ["id", "dir"];
 const _hoisted_2 = ["tabindex", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant", "aria-multiselectable", "role"];
-const _hoisted_3 = ["type", "modelValue", "value", "autocomplete", "id", "placeholder", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant"];
+const _hoisted_3 = ["type", "modelValue", "value", "autocomplete", "id", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant", "aria-multiselectable"];
 const _hoisted_4 = ["onKeyup", "aria-label"];
 const _hoisted_5 = ["onClick"];
-const _hoisted_6 = ["type", "modelValue", "value", "id", "autocomplete", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant", "aria-multiselectable", "role"];
+const _hoisted_6 = ["type", "modelValue", "value", "id", "autocomplete", "aria-controls", "aria-placeholder", "aria-expanded", "aria-activedescendant", "aria-multiselectable"];
 const _hoisted_7 = ["innerHTML"];
-const _hoisted_8 = ["aria-label"];
-const _hoisted_9 = {
-  class: "multiselect-keyboard-focus-helper",
-  ref: "keyboardFocusHelper",
-  tabindex: "-1"
-};
-const _hoisted_10 = ["id"];
-const _hoisted_11 = ["id"];
-const _hoisted_12 = ["id", "aria-label", "aria-selected"];
-const _hoisted_13 = ["data-pointed", "onMouseenter", "onMousedown"];
-const _hoisted_14 = ["innerHTML"];
-const _hoisted_15 = ["aria-label"];
-const _hoisted_16 = ["data-pointed", "data-selected", "onMouseenter", "onMousedown", "id", "aria-selected", "aria-label"];
-const _hoisted_17 = ["data-pointed", "data-selected", "onMouseenter", "onMousedown", "id", "aria-selected", "aria-label"];
-const _hoisted_18 = ["innerHTML"];
-const _hoisted_19 = ["innerHTML"];
-const _hoisted_20 = ["id", "value", "required", "disabled", "aria-label"];
-const _hoisted_21 = ["name", "value"];
-const _hoisted_22 = ["name", "value"];
-const _hoisted_23 = ["name", "value"];
-const _hoisted_24 = ["name", "value"];
-const _hoisted_25 = ["id"];
+const _hoisted_8 = ["id"];
+const _hoisted_9 = ["id"];
+const _hoisted_10 = ["id", "aria-label", "aria-selected"];
+const _hoisted_11 = ["data-pointed", "onMouseenter", "onClick"];
+const _hoisted_12 = ["innerHTML"];
+const _hoisted_13 = ["aria-label"];
+const _hoisted_14 = ["data-pointed", "data-selected", "onMouseenter", "onClick", "id", "aria-selected", "aria-label"];
+const _hoisted_15 = ["data-pointed", "data-selected", "onMouseenter", "onClick", "id", "aria-selected", "aria-label"];
+const _hoisted_16 = ["innerHTML"];
+const _hoisted_17 = ["innerHTML"];
+const _hoisted_18 = ["value"];
+const _hoisted_19 = ["name", "value"];
+const _hoisted_20 = ["name", "value"];
+const _hoisted_21 = ["id"];
 
 function render(_ctx, _cache, $props, $setup, $data, $options) {
   return (openBlock(), createElementBlock("div", {
@@ -4546,7 +4434,6 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             class: _ctx.classList.search,
             autocomplete: $props.autocomplete,
             id: $props.searchable ? $props.id : undefined,
-            placeholder: _ctx.localize($props.searchPlaceholderText),
             onInput: _cache[0] || (_cache[0] = (...args) => (_ctx.handleSearchInput && _ctx.handleSearchInput(...args))),
             onKeypress: _cache[1] || (_cache[1] = (...args) => (_ctx.handleKeypress && _ctx.handleKeypress(...args))),
             onPaste: _cache[2] || (_cache[2] = withModifiers((...args) => (_ctx.handlePaste && _ctx.handlePaste(...args)), ["stop"])),
@@ -4555,6 +4442,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             "aria-placeholder": _ctx.ariaPlaceholder,
             "aria-expanded": _ctx.isOpen,
             "aria-activedescendant": _ctx.ariaActiveDescendant,
+            "aria-multiselectable": _ctx.ariaMultiselectable,
             role: "combobox"
           }, {
             ...$props.attrs,
@@ -4598,7 +4486,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                         }, null, 2 /* CLASS */)
                       ], 10 /* CLASS, PROPS */, _hoisted_5))
                     : createCommentVNode("v-if", true)
-                ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_4))
+                ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_4))
               ])
             }), 256 /* UNKEYED_FRAGMENT */)),
             createElementVNode("div", {
@@ -4628,7 +4516,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                     "aria-expanded": _ctx.isOpen,
                     "aria-activedescendant": _ctx.ariaActiveDescendant,
                     "aria-multiselectable": _ctx.ariaMultiselectable,
-                    role: $props.mode === 'single' ? 'combobox' : 'listbox'
+                    role: "combobox"
                   }, {
                 ...$props.attrs,
                 ..._ctx.arias,
@@ -4689,20 +4577,19 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             clear: _ctx.clear
           }, () => [
             createElementVNode("span", {
+              "aria-hidden": "true",
               tabindex: "0",
               role: "button",
               "data-clear": "",
               "aria-roledescription": "❎",
-              "aria-label": _ctx.localize($props.clearText),
               class: normalizeClass(_ctx.classList.clear),
               onClick: _cache[6] || (_cache[6] = (...args) => (_ctx.clear && _ctx.clear(...args))),
               onKeyup: _cache[7] || (_cache[7] = withKeys((...args) => (_ctx.clear && _ctx.clear(...args)), ["enter"]))
             }, [
               createElementVNode("span", {
-                class: normalizeClass(_ctx.classList.clearIcon),
-                "aria-hidden": "true"
+                class: normalizeClass(_ctx.classList.clearIcon)
               }, null, 2 /* CLASS */)
-            ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_8)
+            ], 34 /* CLASS, NEED_HYDRATION */)
           ])
         : createCommentVNode("v-if", true),
       createCommentVNode(" Caret "),
@@ -4720,8 +4607,6 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
           ])
         : createCommentVNode("v-if", true)
     ], 16 /* FULL_PROPS */, _hoisted_2),
-    createCommentVNode(" Keyboard helper for accessibility (e.g. when you click on an option and tab after with the keyboard)  "),
-    createElementVNode("div", _hoisted_9, null, 512 /* NEED_PATCH */),
     createCommentVNode(" Options "),
     (openBlock(), createBlock(Teleport, {
       to: $props.appendTo || 'body',
@@ -4757,7 +4642,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                         class: normalizeClass(_ctx.classList.groupLabel(group)),
                         "data-pointed": _ctx.isPointed(group),
                         onMouseenter: $event => (_ctx.setPointer(group, i)),
-                        onMousedown: withModifiers($event => (_ctx.handleGroupClick(group)), ["prevent"])
+                        onClick: $event => (_ctx.handleGroupClick(group))
                       }, [
                         renderSlot(_ctx.$slots, "grouplabel", {
                           group: group,
@@ -4766,9 +4651,9 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                         }, () => [
                           createElementVNode("span", {
                             innerHTML: _ctx.localize(group[$props.groupLabel])
-                          }, null, 8 /* PROPS */, _hoisted_14)
+                          }, null, 8 /* PROPS */, _hoisted_12)
                         ])
-                      ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_13))
+                      ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_11))
                     : createCommentVNode("v-if", true),
                   createElementVNode("ul", {
                     class: normalizeClass(_ctx.classList.groupOptions),
@@ -4782,7 +4667,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                         "data-selected": _ctx.isSelected(option) || undefined,
                         key: key,
                         onMouseenter: $event => (_ctx.setPointer(option)),
-                        onMousedown: withModifiers($event => (_ctx.handleOptionClick(option)), ["prevent"]),
+                        onClick: $event => (_ctx.handleOptionClick(option)),
                         id: _ctx.ariaOptionId(option),
                         "aria-selected": _ctx.isSelected(option),
                         "aria-label": _ctx.ariaOptionLabel(_ctx.localize(option[$props.label])),
@@ -4796,10 +4681,10 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                         }, () => [
                           createElementVNode("span", null, toDisplayString(_ctx.localize(option[$props.label])), 1 /* TEXT */)
                         ])
-                      ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_16))
+                      ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_14))
                     }), 128 /* KEYED_FRAGMENT */))
-                  ], 10 /* CLASS, PROPS */, _hoisted_15)
-                ], 10 /* CLASS, PROPS */, _hoisted_12))
+                  ], 10 /* CLASS, PROPS */, _hoisted_13)
+                ], 10 /* CLASS, PROPS */, _hoisted_10))
               }), 128 /* KEYED_FRAGMENT */))
             : (openBlock(true), createElementBlock(Fragment, { key: 1 }, renderList(_ctx.fo, (option, i, key) => {
                 return (openBlock(), createElementBlock("li", {
@@ -4808,7 +4693,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                   "data-selected": _ctx.isSelected(option) || undefined,
                   key: key,
                   onMouseenter: $event => (_ctx.setPointer(option)),
-                  onMousedown: withModifiers($event => (_ctx.handleOptionClick(option)), ["prevent"]),
+                  onClick: $event => (_ctx.handleOptionClick(option)),
                   id: _ctx.ariaOptionId(option),
                   "aria-selected": _ctx.isSelected(option),
                   "aria-label": _ctx.ariaOptionLabel(_ctx.localize(option[$props.label])),
@@ -4822,30 +4707,28 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
                   }, () => [
                     createElementVNode("span", null, toDisplayString(_ctx.localize(option[$props.label])), 1 /* TEXT */)
                   ])
-                ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_17))
+                ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_15))
               }), 128 /* KEYED_FRAGMENT */))
-        ], 10 /* CLASS, PROPS */, _hoisted_11),
-        renderSlot(_ctx.$slots, "nooptions", {}, () => [
-          createElementVNode("div", {
-            class: normalizeClass(_ctx.noOptions ? _ctx.classList.noOptions : [_ctx.classList.noOptions, 'empty'].join(' ')),
-            innerHTML: _ctx.noOptions ? _ctx.localize($props.noOptionsText) : '',
-            "aria-live": "polite",
-            role: "status",
-            "aria-atomic": "true"
-          }, null, 10 /* CLASS, PROPS */, _hoisted_18)
-        ]),
-        renderSlot(_ctx.$slots, "noresults", {}, () => [
-          createElementVNode("div", {
-            class: normalizeClass(_ctx.noResults ? _ctx.classList.noResults : [_ctx.classList.noResults, 'empty'].join(' ')),
-            innerHTML: _ctx.noResults ? _ctx.localize($props.noResultsText) : '',
-            "aria-live": "polite",
-            role: "status",
-            "aria-atomic": "true"
-          }, null, 10 /* CLASS, PROPS */, _hoisted_19)
-        ]),
+        ], 10 /* CLASS, PROPS */, _hoisted_9),
+        (_ctx.noOptions)
+          ? renderSlot(_ctx.$slots, "nooptions", { key: 0 }, () => [
+              createElementVNode("div", {
+                class: normalizeClass(_ctx.classList.noOptions),
+                innerHTML: _ctx.localize($props.noOptionsText)
+              }, null, 10 /* CLASS, PROPS */, _hoisted_16)
+            ])
+          : createCommentVNode("v-if", true),
+        (_ctx.noResults)
+          ? renderSlot(_ctx.$slots, "noresults", { key: 1 }, () => [
+              createElementVNode("div", {
+                class: normalizeClass(_ctx.classList.noResults),
+                innerHTML: _ctx.localize($props.noResultsText)
+              }, null, 10 /* CLASS, PROPS */, _hoisted_17)
+            ])
+          : createCommentVNode("v-if", true),
         ($props.infinite && _ctx.hasMore)
           ? (openBlock(), createElementBlock("div", {
-              key: 0,
+              key: 2,
               class: normalizeClass(_ctx.classList.inifinite),
               ref: "infiniteLoader"
             }, [
@@ -4857,72 +4740,52 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             ], 2 /* CLASS */))
           : createCommentVNode("v-if", true),
         renderSlot(_ctx.$slots, "afterlist", { options: _ctx.fo })
-      ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_10)
+      ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_8)
     ], 8 /* PROPS */, ["to", "disabled"])),
-    createCommentVNode(" Hacky input element to show HTML5 required warning - and also for accessibility that the label references to an input "),
-    ($props.required || $props.disabled)
+    createCommentVNode(" Hacky input element to show HTML5 required warning "),
+    ($props.required)
       ? (openBlock(), createElementBlock("input", {
           key: 0,
-          id: $props.disabled ? $props.id : undefined,
           class: normalizeClass(_ctx.classList.fakeInput),
           tabindex: "-1",
           value: _ctx.textValue,
-          required: $props.required,
-          disabled: $props.disabled,
-          "aria-label": $props.fakeInputHelpText
-        }, null, 10 /* CLASS, PROPS */, _hoisted_20))
+          required: ""
+        }, null, 10 /* CLASS, PROPS */, _hoisted_18))
       : createCommentVNode("v-if", true),
     createCommentVNode(" Native input support "),
-    ($props.nativeSupport && ($props.wcagSupport === false || $props.searchable === true))
+    ($props.nativeSupport)
       ? (openBlock(), createElementBlock(Fragment, { key: 1 }, [
           ($props.mode == 'single')
             ? (openBlock(), createElementBlock("input", {
                 key: 0,
                 type: "hidden",
                 name: $props.name,
-                value: _ctx.textValue !== undefined ? _ctx.textValue : ''
-              }, null, 8 /* PROPS */, _hoisted_21))
+                value: _ctx.plainValue !== undefined ? _ctx.plainValue : ''
+              }, null, 8 /* PROPS */, _hoisted_19))
             : (openBlock(true), createElementBlock(Fragment, { key: 1 }, renderList(_ctx.plainValue, (v, i) => {
                 return (openBlock(), createElementBlock("input", {
                   type: "hidden",
                   name: `${$props.name}[]`,
                   value: v,
                   key: i
-                }, null, 8 /* PROPS */, _hoisted_22))
+                }, null, 8 /* PROPS */, _hoisted_20))
               }), 128 /* KEYED_FRAGMENT */))
-        ], 64 /* STABLE_FRAGMENT */))
-      : createCommentVNode("v-if", true),
-    ($props.wcagSupport && $props.nativeSupport === false && $props.searchable === false)
-      ? (openBlock(), createElementBlock(Fragment, { key: 2 }, [
-          ($props.mode == 'single')
-            ? (openBlock(), createElementBlock("input", {
-                key: 0,
-                type: "hidden",
-                name: $props.name,
-                value: _ctx.localize(_ctx.iv[$props.label]) !== undefined ? _ctx.localize(_ctx.iv[$props.label]) : ''
-              }, null, 8 /* PROPS */, _hoisted_23))
-            : (openBlock(), createElementBlock("input", {
-                key: 1,
-                type: "hidden",
-                name: `${$props.name}[]`,
-                value: _ctx.multipleLabelText
-              }, null, 8 /* PROPS */, _hoisted_24))
         ], 64 /* STABLE_FRAGMENT */))
       : createCommentVNode("v-if", true),
     createCommentVNode(" Screen reader assistive text "),
     ($props.searchable && _ctx.hasSelected)
       ? (openBlock(), createElementBlock("div", {
-          key: 3,
+          key: 2,
           class: normalizeClass(_ctx.classList.assist),
           id: _ctx.ariaAssist,
           "aria-hidden": "true"
-        }, toDisplayString(_ctx.ariaLabel), 11 /* TEXT, CLASS, PROPS */, _hoisted_25))
+        }, toDisplayString(_ctx.ariaLabel), 11 /* TEXT, CLASS, PROPS */, _hoisted_21))
       : createCommentVNode("v-if", true),
     createCommentVNode(" Create height for empty input "),
     createElementVNode("div", {
       class: normalizeClass(_ctx.classList.spacer)
     }, null, 2 /* CLASS */)
-  ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_1))
+  ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_1))
 }
 
 script.render = render;

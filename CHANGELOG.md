@@ -1,3 +1,39 @@
+## v2.6.11
+
+> `2024-11-23`
+
+### 🐞 Bug Fixes
+  - Don't throw error when endpoint type `options` is undefined
+
+## v2.6.10
+
+> `2024-09-16`
+
+### 🐞 Bug Fixes
+  - Option should display as selected even when value is an object
+
+## v2.6.9
+
+> `2024-07-29`
+
+### 🐞 Bug Fixes
+  - Removed optional chaining, fixes #420
+
+## v2.6.8
+
+> `2024-06-14`
+
+### 🎉 Feature
+  - export `resolvedOptions`
+
+### 🐞 Bug Fixes
+  - Typing fixes (Thanks to @nurbek0298 🙏)
+  - Always scroll to selected option on open #406
+  - Use `click` instead of `mousedown` event #387
+
+### 🧹 Chore
+  - Performance optimization (Thanks to @negezor 🙏)
+
 ## v2.6.7
 
 > `2024-03-20`
