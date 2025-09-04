@@ -1070,6 +1070,7 @@ function useOptions (props, context, dep)
     let u_return = {};
     if(mode.value === 'single') {
       u_return = getOption(val);
+        console.log(u_return);
       if(!u_return) {
         if(allowAbsent.value && typeof val !== 'object') { // sometime val is an event object - do not allow this value
           u_return = {
@@ -1078,6 +1079,11 @@ function useOptions (props, context, dep)
             [trackBy.value[0]]: val,
           };
         } else if(allowAbsent.value && typeof val === 'object' && val.value !== undefined && val.label !== undefined) {
+            console.log({
+                [label.value]: val.label,
+                [valueProp.value]: val.value,
+                [trackBy.value[0]]: val.label,
+            });
             u_return = {
                 [label.value]: val.label,
                 [valueProp.value]: val.value,
@@ -1094,7 +1100,7 @@ function useOptions (props, context, dep)
         [trackBy.value[0]]: v,
       });
     }
-
+      console.log(u_return);
     return u_return
   };
 
@@ -1143,10 +1149,9 @@ function useOptions (props, context, dep)
     } else if(resolveModelValue && typeof resolveModelValue.value == 'function' ) {
         if(ev.value !== undefined && ev.value !== '') {
             let u_result = resolveModelValue.value(ev.value);
-
             if(u_result instanceof Promise) {
-                u_result.then(((values) => {
-                    iv.value = makeInternal(values[ev.value]);
+                u_result.then(((value) => {
+                    iv.value = makeInternal(value);
                 }));
             } else {
                 iv.value = makeInternal(u_result);
@@ -3841,7 +3846,7 @@ function useScroll (props, context, dep)
   const search = dep.search;
   const resolveOptions = dep.resolveOptions;
   dep.options;
-  dep.pfo;
+  const pfo = dep.pfo;
   const eo = dep.eo;
   const moreToFetch = ref(true);
 
@@ -3876,15 +3881,15 @@ function useScroll (props, context, dep)
             search.value = '';
         }
 
-        /*if(pfo.value && pfo.value.length > offset.value + limit.value) {
+        if(pfo.value && pfo.value.length > offset.value + limit.value) {
             // Do not load again when there are already enough loaded options
-            offset.value += limit.value === -1 ? 10 : limit.value
+            offset.value += limit.value === -1 ? 10 : limit.value;
 
             nextTick(() => {
-                parent.scrollTop = scrollTop
+                parent.scrollTop = scrollTop;
             });
             return;
-        }*/
+        }
 
         let result = resolveOptions();
 

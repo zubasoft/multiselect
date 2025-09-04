@@ -831,10 +831,9 @@ export default function useOptions (props, context, dep)
     } else if(resolveModelValue && typeof resolveModelValue.value == 'function' ) {
         if(ev.value !== undefined && ev.value !== '') {
             let u_result = resolveModelValue.value(ev.value);
-
             if(u_result instanceof Promise) {
-                u_result.then(((values) => {
-                    iv.value = makeInternal(values[ev.value]);
+                u_result.then(((value) => {
+                    iv.value = makeInternal(value);
                 }));
             } else {
                 iv.value = makeInternal(u_result);
