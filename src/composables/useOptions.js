@@ -11,6 +11,7 @@ export default function useOptions (props, context, dep)
   const { 
     options, mode, trackBy: trackBy_, limit, hideSelected, createTag, createOption: createOption_, label,
     appendNewTag, appendNewOption: appendNewOption_, multipleLabel, object, loading, delay, resolveOnLoad,
+    resolveModelValue,
     minChars, filterResults, clearOnSearch, clearOnSelect, valueProp, allowAbsent, groupLabel,
     canDeselect, max, strict, closeOnSelect, closeOnDeselect, groups: groupped, reverse, infinite,
     groupOptions, groupHideEmpty, groupSelect, onCreate, disabledProp, searchStart, searchFilter,
@@ -20,19 +21,20 @@ export default function useOptions (props, context, dep)
 
   // ============ DEPENDENCIES ============
 
-  const iv = dep.iv
-  const ev = dep.ev
-  const search = dep.search
-  const clearSearch = dep.clearSearch
-  const update = dep.update
-  const pointer = dep.pointer
-  const setPointer = dep.setPointer
-  const clearPointer = dep.clearPointer
-  const focus = dep.focus
-  const deactivate = dep.deactivate
-  const close = dep.close
-  const localize = dep.localize
-  const wrapper = dep.wrapper
+  const iv = dep.iv;
+  const ev = dep.ev;
+  const search = dep.search;
+  const clearSearch = dep.clearSearch;
+  const update = dep.update;
+  const pointer = dep.pointer;
+  const setPointer = dep.setPointer;
+  const clearPointer = dep.clearPointer;
+  const focus = dep.focus;
+  const deactivate = dep.deactivate;
+  const close = dep.close;
+  const localize = dep.localize;
+  const infinte = dep.infinite;
+  const wrapper = dep.wrapper;
   const keyboardFocusHelper = dep.keyboardFocusHelper;
 
   // ================ DATA ================
@@ -669,9 +671,16 @@ export default function useOptions (props, context, dep)
   const resolveOptions = (callback) => {
     resolving.value = true
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
+      let values = [];
       options.value(search.value, $this).then((response) => {
-        ro.value = response || []
+        values = response;
+
+        if (!infinite.value) {
+            ro.value = response || []
+        } else {
+            ro.value = ro.value.concat(response || []);
+        }
 
         if (typeof callback == 'function') {
           callback(response)
@@ -685,7 +694,7 @@ export default function useOptions (props, context, dep)
 
         resolving.value = false
       }).finally(() => {
-        resolve()
+        resolve(values)
       })
     })
   }
@@ -752,6 +761,12 @@ export default function useOptions (props, context, dep)
             [valueProp.value]: val,
             [trackBy.value[0]]: val,
           }
+        } else if(allowAbsent.value && typeof val === 'object' && val.value !== undefined && val.label !== undefined) {
+            u_return = {
+                [label.value]: val.label,
+                [valueProp.value]: val.value,
+                [trackBy.value[0]]: val.label,
+            }
         } else {
           u_return = {};
         }
@@ -809,11 +824,24 @@ export default function useOptions (props, context, dep)
       resolveOptions(initInternalValue)
     } else if (object.value == true) {
       initInternalValue()
+    } else if(resolveModelValue && typeof resolveModelValue.value == 'function' ) {
+        if(ev.value !== undefined && ev.value !== '') {
+            let u_result = resolveModelValue.value(ev.value);
+
+            if(u_result instanceof Promise) {
+                u_result.then(((values) => {
+                    console.log(values[ev.value])
+                    iv.value = makeInternal(values[ev.value]);
+                    console.log(iv.value);
+                }));
+            } else {
+                iv.value = makeInternal(u_result);
+            }
+        }
     }
   }
   else {
     ro.value = options.value
-
     initInternalValue()
   }
   

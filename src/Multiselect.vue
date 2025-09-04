@@ -486,6 +486,11 @@
         required: false,
         default: true,
       },
+      resolveModelValue: {
+        type: Function,
+        required: false,
+        default: undefined,
+      },
       filterResults: {
         type: Boolean,
         required: false,

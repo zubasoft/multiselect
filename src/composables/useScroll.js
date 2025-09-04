@@ -4,16 +4,19 @@ import toRef from '../utils/toRef'
 export default function useScroll (props, context, dep)
 {
   const {
-    limit, infinite,
+    limit, infinite
   } = toRefs(props)
 
   // ============ DEPENDENCIES ============
 
-  const isOpen = dep.isOpen
-  const offset = dep.offset
-  const search = dep.search
-  const pfo = dep.pfo
-  const eo = dep.eo
+  const isOpen = dep.isOpen;
+  const offset = dep.offset;
+  const search = dep.search;
+  const resolveOptions = dep.resolveOptions;
+  const options = dep.options;
+  const pfo = dep.pfo;
+  const eo = dep.eo;
+  const moreToFetch = ref(true);
 
   // ================ DATA ================
 
@@ -25,7 +28,7 @@ export default function useScroll (props, context, dep)
   // ============== COMPUTED ==============
 
   const hasMore = toRef(() => {
-    return offset.value < pfo.value.length
+    return moreToFetch.value;
   })
 
   // =============== METHODS ==============
@@ -39,11 +42,29 @@ export default function useScroll (props, context, dep)
       const parent = target.offsetParent
       const scrollTop = parent.scrollTop
 
-      offset.value += limit.value == -1 ? 10 : limit.value
+        let result = resolveOptions(search.value, options);
 
-      nextTick(() => {
-        parent.scrollTop = scrollTop
-      })
+        if(result instanceof Promise) {
+            result.then((response) => {
+                console.log(response);
+
+                if(response.length === 0) {
+                    moreToFetch.value = false;
+                }
+
+                offset.value += limit.value === -1 ? 10 : limit.value
+
+                nextTick(() => {
+                    parent.scrollTop = scrollTop
+                });
+            });
+        } else {
+            offset.value += limit.value === -1 ? 10 : limit.value
+
+            nextTick(() => {
+                parent.scrollTop = scrollTop
+            });
+        }
     }
   }
 
@@ -72,6 +93,7 @@ export default function useScroll (props, context, dep)
     }
 
     offset.value = limit.value
+    moreToFetch.value = true;
 
     observe()
   }, { flush: 'post' })
@@ -80,6 +102,8 @@ export default function useScroll (props, context, dep)
     if (!infinite.value) {
       return
     }
+
+    moreToFetch.value = true;
 
     observe()
   }, { immediate: false, flush: 'post' })
