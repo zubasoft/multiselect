@@ -46,8 +46,6 @@ export default function useScroll (props, context, dep)
 
         if(result instanceof Promise) {
             result.then((response) => {
-                console.log(response);
-
                 if(response.length === 0) {
                     moreToFetch.value = false;
                 }
@@ -92,7 +90,7 @@ export default function useScroll (props, context, dep)
       return
     }
 
-    offset.value = limit.value
+    offset.value = 0;
     moreToFetch.value = true;
 
     observe()
