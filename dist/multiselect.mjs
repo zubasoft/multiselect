@@ -1,4 +1,4 @@
-import { toRefs, getCurrentInstance, customRef, ref, computed, watch, nextTick, onMounted, onBeforeUnmount, shallowRef, openBlock, createElementBlock, normalizeClass, createElementVNode, mergeProps, createCommentVNode, withModifiers, Fragment, renderList, renderSlot, withKeys, toDisplayString, createBlock, Teleport } from 'vue';
+import { toRefs, getCurrentInstance, customRef, ref, computed, watch, nextTick, onMounted, onBeforeUnmount, shallowRef, openBlock, createElementBlock, normalizeClass, createElementVNode, mergeProps, createCommentVNode, withModifiers, Fragment, renderList, renderSlot, withKeys, toDisplayString, createBlock, Teleport, withDirectives, vShow } from 'vue';
 
 function isNullish (val) {
   return val === null || val === undefined
@@ -991,7 +991,11 @@ function useOptions (props, context, dep)
         if (!infinite.value) {
             ro.value = response || [];
         } else {
-            ro.value = ro.value.concat(response || []);
+            // Merging arrays with unique values using Map and Set
+            // https://www.geeksforgeeks.org/javascript/how-to-merge-two-different-arrays-of-objects-with-unique-values-only-in-javascript/
+            const map = new Map([...ro.value, ...(response || [])]
+                .map(obj => [obj.value, obj]));
+            ro.value = Array.from(map.values());
         }
 
         if (typeof callback == 'function') {
@@ -1142,9 +1146,7 @@ function useOptions (props, context, dep)
 
             if(u_result instanceof Promise) {
                 u_result.then(((values) => {
-                    console.log(values[ev.value]);
                     iv.value = makeInternal(values[ev.value]);
-                    console.log(iv.value);
                 }));
             } else {
                 iv.value = makeInternal(u_result);
@@ -3838,8 +3840,8 @@ function useScroll (props, context, dep)
   const offset = dep.offset;
   const search = dep.search;
   const resolveOptions = dep.resolveOptions;
-  const options = dep.options;
-  const pfo = dep.pfo;
+  dep.options;
+  dep.pfo;
   const eo = dep.eo;
   const moreToFetch = ref(true);
 
@@ -3866,16 +3868,29 @@ function useScroll (props, context, dep)
     const { isIntersecting, target } = entries[0];
 
     if (isIntersecting) {
-
       const parent = target.offsetParent;
       const scrollTop = parent.scrollTop;
         scrollingBox.value = parent;
 
-        let result = resolveOptions(search.value, options);
+        if(search.value === undefined || search.value === null) {
+            search.value = '';
+        }
+
+        /*if(pfo.value && pfo.value.length > offset.value + limit.value) {
+            // Do not load again when there are already enough loaded options
+            offset.value += limit.value === -1 ? 10 : limit.value
+
+            nextTick(() => {
+                parent.scrollTop = scrollTop
+            });
+            return;
+        }*/
+
+        let result = resolveOptions();
 
         if(result instanceof Promise) {
             result.then((response) => {
-                if(response.length === 0) {
+                if(response.length < limit.value) {
                     moreToFetch.value = false;
                 }
 
@@ -3897,7 +3912,7 @@ function useScroll (props, context, dep)
 
   const observe = () => {
     /* istanbul ignore else */
-    if (isOpen.value && offset.value < pfo.value.length) {
+    if (isOpen.value && moreToFetch.value) {
       observer.value.observe(infiniteLoader.value);
     } else if (!isOpen.value && observer.value) {
       observer.value.disconnect();
@@ -3922,7 +3937,6 @@ function useScroll (props, context, dep)
     offset.value = 0;
     moreToFetch.value = true;
     if(scrollingBox.value) {
-        console.log('scroll to top');
         scrollingBox.value.scrollTop = 0;
     }
 
@@ -4913,19 +4927,19 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             "aria-atomic": "true"
           }, null, 10 /* CLASS, PROPS */, _hoisted_19)
         ]),
-        ($props.infinite && _ctx.hasMore)
-          ? (openBlock(), createElementBlock("div", {
-              key: 0,
-              class: normalizeClass(_ctx.classList.inifinite),
-              ref: "infiniteLoader"
-            }, [
-              renderSlot(_ctx.$slots, "infinite", {}, () => [
-                createElementVNode("span", {
-                  class: normalizeClass(_ctx.classList.inifiniteSpinner)
-                }, null, 2 /* CLASS */)
-              ])
-            ], 2 /* CLASS */))
-          : createCommentVNode("v-if", true),
+        withDirectives(createElementVNode("div", {
+          class: normalizeClass(_ctx.classList.inifinite),
+          ref: "infiniteLoader",
+          "aria-hidden": "true"
+        }, [
+          renderSlot(_ctx.$slots, "infinite", {}, () => [
+            createElementVNode("span", {
+              class: normalizeClass(_ctx.classList.inifiniteSpinner)
+            }, null, 2 /* CLASS */)
+          ])
+        ], 2 /* CLASS */), [
+          [vShow, $props.infinite && _ctx.hasMore]
+        ]),
         renderSlot(_ctx.$slots, "afterlist", { options: _ctx.fo })
       ], 42 /* CLASS, PROPS, HYDRATE_EVENTS */, _hoisted_10)
     ], 8 /* PROPS */, ["to", "disabled"])),

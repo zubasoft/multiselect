@@ -679,7 +679,11 @@ export default function useOptions (props, context, dep)
         if (!infinite.value) {
             ro.value = response || []
         } else {
-            ro.value = ro.value.concat(response || []);
+            // Merging arrays with unique values using Map and Set
+            // https://www.geeksforgeeks.org/javascript/how-to-merge-two-different-arrays-of-objects-with-unique-values-only-in-javascript/
+            const map = new Map([...ro.value, ...(response || [])]
+                .map(obj => [obj.value, obj]));
+            ro.value = Array.from(map.values());
         }
 
         if (typeof callback == 'function') {
@@ -830,9 +834,7 @@ export default function useOptions (props, context, dep)
 
             if(u_result instanceof Promise) {
                 u_result.then(((values) => {
-                    console.log(values[ev.value])
                     iv.value = makeInternal(values[ev.value]);
-                    console.log(iv.value);
                 }));
             } else {
                 iv.value = makeInternal(u_result);

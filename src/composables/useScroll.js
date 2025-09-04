@@ -1,4 +1,4 @@
-import { toRefs, watch, nextTick, onMounted, ref, shallowRef, computed } from 'vue'
+import { toRefs, watch, nextTick, onMounted, ref, shallowRef } from 'vue'
 import toRef from '../utils/toRef'
 
 export default function useScroll (props, context, dep)
@@ -41,16 +41,29 @@ export default function useScroll (props, context, dep)
     const { isIntersecting, target } = entries[0]
 
     if (isIntersecting) {
-
-      const parent = target.offsetParent
-      const scrollTop = parent.scrollTop
+      const parent = target.offsetParent;
+      const scrollTop = parent.scrollTop;
         scrollingBox.value = parent;
 
-        let result = resolveOptions(search.value, options);
+        if(search.value === undefined || search.value === null) {
+            search.value = '';
+        }
+
+        if(pfo.value && pfo.value.length > offset.value + limit.value) {
+            // Do not load again when there are already enough loaded options
+            offset.value += limit.value === -1 ? 10 : limit.value
+
+            nextTick(() => {
+                parent.scrollTop = scrollTop
+            });
+            return;
+        }
+
+        let result = resolveOptions();
 
         if(result instanceof Promise) {
             result.then((response) => {
-                if(response.length === 0) {
+                if(response.length < limit.value) {
                     moreToFetch.value = false;
                 }
 
@@ -72,7 +85,7 @@ export default function useScroll (props, context, dep)
 
   const observe = () => {
     /* istanbul ignore else */
-    if (isOpen.value && offset.value < pfo.value.length) {
+    if (isOpen.value && moreToFetch.value) {
       observer.value.observe(infiniteLoader.value)
     } else if (!isOpen.value && observer.value) {
       observer.value.disconnect()

@@ -263,7 +263,7 @@
           <div :class="noResults ? classList.noResults : [classList.noResults, 'empty'].join(' ')" v-html="noResults ? localize(noResultsText) : ''" aria-live="polite" role="status" aria-atomic="true"></div>
         </slot>
 
-        <div v-if="infinite && hasMore" :class="classList.inifinite" ref="infiniteLoader">
+        <div v-show="infinite && hasMore" :class="classList.inifinite" ref="infiniteLoader" aria-hidden="true">
           <slot name="infinite">
             <span :class="classList.inifiniteSpinner"></span>
           </slot>
