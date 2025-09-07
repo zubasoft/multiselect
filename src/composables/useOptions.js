@@ -799,12 +799,12 @@ export default function useOptions (props, context, dep)
         ro.value = []
       }
       setTimeout(() => {
-        if (query != search.value) {
+        if (query !== search.value) {
           return
         }
 
         options.value(search.value, $this).then((response) => {
-          if (query == search.value || !search.value) {
+          if (query === search.value || !search.value) {
             ro.value = response
             pointer.value = fo.value.filter(o => o[disabledProp.value] !== true)[0] || null
             resolving.value = false

@@ -988,6 +988,8 @@ function useOptions (props, context, dep)
       options.value(search.value, $this).then((response) => {
         values = response;
 
+        console.log(response, ro.value);
+
         if (!infinite.value) {
             ro.value = response || [];
         } else {
@@ -1070,7 +1072,6 @@ function useOptions (props, context, dep)
     let u_return = {};
     if(mode.value === 'single') {
       u_return = getOption(val);
-        console.log(u_return);
       if(!u_return) {
         if(allowAbsent.value && typeof val !== 'object') { // sometime val is an event object - do not allow this value
           u_return = {
@@ -1079,11 +1080,6 @@ function useOptions (props, context, dep)
             [trackBy.value[0]]: val,
           };
         } else if(allowAbsent.value && typeof val === 'object' && val.value !== undefined && val.label !== undefined) {
-            console.log({
-                [label.value]: val.label,
-                [valueProp.value]: val.value,
-                [trackBy.value[0]]: val.label,
-            });
             u_return = {
                 [label.value]: val.label,
                 [valueProp.value]: val.value,
@@ -1100,7 +1096,7 @@ function useOptions (props, context, dep)
         [trackBy.value[0]]: v,
       });
     }
-      console.log(u_return);
+
     return u_return
   };
 
@@ -1110,6 +1106,7 @@ function useOptions (props, context, dep)
       if (query.length < minChars.value || (!query && minChars.value !== 0)) {
         return
       }
+      console.log('loading data');
 
       resolving.value = true;
 
@@ -1117,12 +1114,12 @@ function useOptions (props, context, dep)
         ro.value = [];
       }
       setTimeout(() => {
-        if (query != search.value) {
+        if (query !== search.value) {
           return
         }
 
         options.value(search.value, $this).then((response) => {
-          if (query == search.value || !search.value) {
+          if (query === search.value || !search.value) {
             ro.value = response;
             pointer.value = fo.value.filter(o => o[disabledProp.value] !== true)[0] || null;
             resolving.value = false;
